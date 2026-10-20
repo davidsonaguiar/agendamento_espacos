@@ -10,6 +10,10 @@ from app.modulos.espacos.infra.modelos import (
     EspacoPausaFuncionamentoModelo,
     espaco_usuario_tabela,
 )
+from app.modulos.projeto.infra.modelos import (
+    ProjetoModelo,
+    ProjetoParticipanteModelo,
+)
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
 
@@ -19,10 +23,12 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
         bind=motor,
         tables=[
             UsuarioModelo.__table__,
-            EspacoModelo.__table__,
             espaco_usuario_tabela,
+            EspacoModelo.__table__,
             EspacoHorarioFuncionamentoModelo.__table__,
-            EspacoPausaFuncionamentoModelo.__table__
+            EspacoPausaFuncionamentoModelo.__table__,
+            ProjetoModelo.__table__,
+            ProjetoParticipanteModelo.__table__,
         ],
     )
     yield

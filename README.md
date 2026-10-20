@@ -50,12 +50,7 @@ app/
 │       ├── ciclo_vida.py
 │       └── seguranca/
 └── modulos/
-    ├── usuarios/                        # Cadastro, autenticação e listagem de usuários
-    │   ├── casos_uso/
-    │   ├── dominio/
-    │   ├── infra/
-    │   └── interface/                   # Rotas, esquemas e dependências HTTP
-    └── espacos/                         # Cadastro, consulta e gestão de espaços físicos
+    └── usuarios/
         ├── casos_uso/
         ├── dominio/
         ├── infra/
@@ -68,7 +63,7 @@ docs/                                    # Documentação da API e do modelo de 
 
 ## ⚙️ Funcionalidades
 
-### Implementado: usuários e autenticação
+### Implementado: usuários, espaços e projetos
 
 * Cadastro público de servidores solicitantes e cadastro de usuários internos por administradores ou coordenadores, com restrições para criação de perfis administrativos.
 * Listagem de usuários por administradores e coordenadores, com filtros opcionais por perfil e situação (ativo/inativo).
@@ -76,23 +71,18 @@ docs/                                    # Documentação da API e do modelo de 
 * Consulta dos dados do usuário autenticado.
 * Perfis disponíveis: Administrador, Coordenador, Servidor, Monitor e Aluno.
 * Endpoint de status da API em `GET /`.
+* Cadastro e consulta de projetos, gestão de participantes e avaliação administrativa (Pendente, Aceito ou Recusado).
+* Cadastro, consulta, atualização, desativação e reativação de espaços, além de vínculos entre espaços e usuários.
 
-### Implementado: espaços físicos
-
-* Cadastro e atualização de espaços.
-* Listagem de espaços com visibilidade conforme o perfil autenticado.
-* Desativação e reativação de espaços.
-* Vínculo e remoção de vínculos de coordenadores e monitores a espaços.
-
-As rotas, formatos de entrada e requisitos de autenticação estão descritos em [docs/api.md](docs/api.md). O cadastro e a gestão de equipamentos/recursos ainda não possuem rotas implementadas.
+As rotas, formatos de entrada e requisitos de autenticação estão descritos em [docs/api.md](docs/api.md).
 
 ### Planejado: gestão do laboratório
 
-Projetos e participantes, equipamentos/recursos, horários de funcionamento, solicitações de agendamento, anexos, agenda e turnos de monitoria fazem parte do escopo planejado. Esses recursos ainda não possuem rotas implementadas nesta versão.
+Projetos e participantes, espaços e recursos, horários de funcionamento, solicitações de agendamento, anexos, agenda e turnos de monitoria fazem parte do escopo planejado. Esses recursos ainda não possuem rotas implementadas nesta versão.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo relacional proposto para o sistema completo está em [docs/banco_dados.md](docs/banco_dados.md). Atualmente, a aplicação cria as tabelas `usuario`, `espaco` e `espaco_usuario`; as demais entidades do modelo ainda não estão implementadas no esquema da aplicação.
+O modelo relacional proposto para o sistema completo está em [docs/banco_dados.md](docs/banco_dados.md). Atualmente, a aplicação cria somente a tabela `usuario` durante a inicialização; as demais entidades documentadas ainda não estão implementadas no esquema da aplicação.
 
 ## 🛠️ Como Executar o Projeto Localmente
 
