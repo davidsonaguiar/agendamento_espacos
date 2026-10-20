@@ -1,13 +1,13 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.compartilhado.dominio.erros import EntidadeNaoEncontradaErro
-from app.modulos.projeto.dominio.contratos import ProjetoRepositorioContrato
-from app.modulos.projeto.dominio.entidades import (
+from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
+from app.modulos.projetos.dominio.entidade import (
     ParticipanteProjeto,
     Projeto,
-    StatusProjeto,
 )
-from app.modulos.projeto.infra.modelos import (
+from app.modulos.projetos.infra.modelos import (
     ProjetoModelo,
     ProjetoParticipanteModelo,
 )
@@ -18,26 +18,40 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
         self.db = db
 
     def buscar_por_id(self, id_projeto: int) -> Projeto | None:
-        modelo = (
-            self.db.query(ProjetoModelo)
-            .options(
-                joinedload(ProjetoModelo.participantes).joinedload(
-                    ProjetoParticipanteModelo.usuario
-                )
-            )
+        modelo = self._consulta_com_participantes().filter(
+            ProjetoModelo.id == id_projeto
+        ).first()
+        return self._converter(modelo) if modelo else None
+
+    def buscar_por_id_vinculado(
+        self, id_projeto: int, id_usuario: int, incluir_responsabilidade: bool
+    ) -> Projeto | None:
+        consulta = (
+            self._consulta_com_participantes()
+            .outerjoin(ProjetoParticipanteModelo)
             .filter(ProjetoModelo.id == id_projeto)
+        )
+        modelo = (
+            self._filtrar_vinculo(consulta, id_usuario, incluir_responsabilidade)
+            .distinct()
             .first()
         )
         return self._converter(modelo) if modelo else None
 
     def buscar_todos(self) -> list[Projeto]:
+        modelos = self._consulta_com_participantes().all()
+        return [self._converter(modelo) for modelo in modelos]
+
+    def buscar_vinculados_a_usuario(
+        self, id_usuario: int, incluir_responsabilidade: bool
+    ) -> list[Projeto]:
+        consulta = (
+            self._consulta_com_participantes()
+            .outerjoin(ProjetoParticipanteModelo)
+        )
         modelos = (
-            self.db.query(ProjetoModelo)
-            .options(
-                joinedload(ProjetoModelo.participantes).joinedload(
-                    ProjetoParticipanteModelo.usuario
-                )
-            )
+            self._filtrar_vinculo(consulta, id_usuario, incluir_responsabilidade)
+            .distinct()
             .all()
         )
         return [self._converter(modelo) for modelo in modelos]
@@ -47,9 +61,9 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
             descricao=projeto.descricao,
             finalidade=projeto.finalidade,
             id_responsavel=projeto.id_responsavel,
+            id_criador=projeto.id_criador,
             quantidade_participantes=projeto.quantidade_participantes,
             documentacao_base=projeto.documentacao_base,
-            status=projeto.status,
         )
         self.db.add(modelo)
         self.db.commit()
@@ -80,11 +94,7 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
         return projeto_atualizado
 
     def excluir(self, id_projeto: int) -> None:
-        modelo = (
-            self.db.query(ProjetoModelo)
-            .filter(ProjetoModelo.id == id_projeto)
-            .first()
-        )
+        modelo = self.db.query(ProjetoModelo).filter(ProjetoModelo.id == id_projeto).first()
         if not modelo:
             raise EntidadeNaoEncontradaErro("Projeto", id_projeto)
 
@@ -127,6 +137,7 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
             )
             .first()
         )
+        
         if not participante:
             raise EntidadeNaoEncontradaErro("Participante do projeto", id_usuario)
 
@@ -137,27 +148,30 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
             raise EntidadeNaoEncontradaErro("Projeto", id_projeto)
         return projeto
 
-    def atualizar_status(self, id_projeto: int, status: StatusProjeto) -> Projeto:
-        modelo = (
-            self.db.query(ProjetoModelo)
-            .filter(ProjetoModelo.id == id_projeto)
-            .first()
+    def _consulta_com_participantes(self):
+        return self.db.query(ProjetoModelo).options(
+            joinedload(ProjetoModelo.participantes).joinedload(
+                ProjetoParticipanteModelo.usuario
+            )
         )
-        if not modelo:
-            raise EntidadeNaoEncontradaErro("Projeto", id_projeto)
 
-        modelo.status = status
-        self.db.commit()
-        projeto = self.buscar_por_id(id_projeto)
-        if projeto is None:
-            raise EntidadeNaoEncontradaErro("Projeto", id_projeto)
-        return projeto
+    @staticmethod
+    def _filtrar_vinculo(consulta, id_usuario: int, incluir_responsabilidade: bool):
+        if incluir_responsabilidade:
+            return consulta.filter(
+                or_(
+                    ProjetoModelo.id_responsavel == id_usuario,
+                    ProjetoParticipanteModelo.id_usuario == id_usuario,
+                )
+            )
+        return consulta.filter(ProjetoParticipanteModelo.id_usuario == id_usuario)
 
     @staticmethod
     def _converter(modelo: ProjetoModelo) -> Projeto:
         participantes = [
             ParticipanteProjeto(
                 id_usuario=participante.id_usuario,
+                id_projeto=participante.id_projeto,
                 nome_completo=participante.usuario.nome_completo,
                 papel_no_projeto=participante.papel_no_projeto,
             )
@@ -168,8 +182,8 @@ class ProjetoRepositorio(ProjetoRepositorioContrato):
             descricao=modelo.descricao,
             finalidade=modelo.finalidade,
             id_responsavel=modelo.id_responsavel,
+            id_criador=modelo.id_criador,
             quantidade_participantes=modelo.quantidade_participantes,
             documentacao_base=modelo.documentacao_base,
-            status=modelo.status,
             participantes=participantes,
         )

@@ -3,8 +3,8 @@ from app.compartilhado.dominio.erros import (
     ConflitoDeDadosErro,
     EntidadeNaoEncontradaErro,
 )
-from app.modulos.projeto.dominio.contratos import ProjetoRepositorioContrato
-from app.modulos.projeto.dominio.entidades import Projeto
+from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
+from app.modulos.projetos.dominio.entidade import Projeto
 from app.modulos.usuarios.dominio.contratos import UsuarioRepositorioContrato
 
 

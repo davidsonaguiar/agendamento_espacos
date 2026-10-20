@@ -41,48 +41,65 @@ O sistema é dividido em módulos isolados, e cada módulo possui 4 camadas rest
 ```text
 app/
 ├── compartilhado/
-│   ├── dominio/                         # Erros e entidade base
-│   │   ├── erros.py
-│   │   └── entidade_base.py
+│   ├── dominio/                         # Entidade base e erros compartilhados
 │   └── infra/
-│       ├── banco_dados.py
-│       ├── config.py
-│       ├── ciclo_vida.py
 │       └── seguranca/
 └── modulos/
-    └── usuarios/
+    ├── espacos/                           # Espaços, horários, pausas e vínculos
+    │   ├── casos_uso/
+    │   ├── dominio/
+    │   ├── infra/
+    │   └── interface/
+    ├── projetos/                          # Projetos e participantes
+    │   ├── casos_uso/
+    │   ├── dominio/
+    │   ├── infra/
+    │   └── interface/
+    ├── solicitacao/                       # Estrutura reservada para solicitações
+    └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
         ├── dominio/
         ├── infra/
         └── interface/
 
-main.py                                  # Entrypoint da aplicação
+main.py                                  # Ponto de entrada da aplicação
 requirements.txt
-docs/                                    # Documentação da API e do modelo de dados proposto
+docs/
+├── banco_dados.md
+└── casos_de_uso/
+    ├── espacos.md
+    ├── projetos.md
+    ├── solicitacao.md
+    └── usuarios.md
 ```
 
 ## ⚙️ Funcionalidades
 
-### Implementado: usuários, espaços e projetos
+### Implementado
 
-* Cadastro público de servidores solicitantes e cadastro de usuários internos por administradores ou coordenadores, com restrições para criação de perfis administrativos.
-* Listagem de usuários por administradores e coordenadores, com filtros opcionais por perfil e situação (ativo/inativo).
-* Login por CPF ou e-mail, com emissão de token JWT.
-* Consulta dos dados do usuário autenticado.
-* Perfis disponíveis: Administrador, Coordenador, Servidor, Monitor e Aluno.
-* Endpoint de status da API em `GET /`.
-* Cadastro e consulta de projetos, gestão de participantes e avaliação administrativa (Pendente, Aceito ou Recusado).
-* Cadastro, consulta, atualização, desativação e reativação de espaços, além de vínculos entre espaços e usuários.
+* Cadastro, autenticação por CPF ou e-mail, consulta do usuário autenticado e listagem administrativa de usuários. Os perfis são Administrador, Coordenador, Servidor, Monitor e Aluno.
+* Cadastro e manutenção de espaços, horários de funcionamento, pausas e vínculos entre espaços e usuários.
+* Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
+* A listagem e a consulta individual de projetos são filtradas por vínculo para Servidores e Alunos. Coordenadores, Administradores e Monitores podem consultar todos os projetos.
+* A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
+* Endpoint de verificação da API em `GET /`.
 
-As rotas, formatos de entrada e requisitos de autenticação estão descritos em [docs/api.md](docs/api.md).
+Os casos de uso, as regras de negócio, as restrições e os fluxos estão detalhados por módulo:
 
-### Planejado: gestão do laboratório
+* [Usuários](docs/casos_de_uso/usuarios.md)
+* [Espaços](docs/casos_de_uso/espacos.md)
+* [Projetos](docs/casos_de_uso/projetos.md)
+* [Solicitações (módulo ainda sem implementação)](docs/casos_de_uso/solicitacao.md)
 
-Projetos e participantes, espaços e recursos, horários de funcionamento, solicitações de agendamento, anexos, agenda e turnos de monitoria fazem parte do escopo planejado. Esses recursos ainda não possuem rotas implementadas nesta versão.
+A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI) e `/redoc`.
+
+### Ainda não implementado
+
+O módulo `solicitacao` existe apenas como estrutura de diretórios, sem casos de uso ou rotas implementados. Recursos, solicitações de agendamento, anexos, agenda de reservas e turnos de monitoria também permanecem no modelo conceitual do banco, sem implementação nesta versão.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo relacional proposto para o sistema completo está em [docs/banco_dados.md](docs/banco_dados.md). Atualmente, a aplicação cria somente a tabela `usuario` durante a inicialização; as demais entidades documentadas ainda não estão implementadas no esquema da aplicação.
+O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos) e projetos (incluindo participantes). O restante do diagrama descreve o modelo conceitual de funcionalidades futuras.
 
 ## 🛠️ Como Executar o Projeto Localmente
 
@@ -142,7 +159,7 @@ O modelo relacional proposto para o sistema completo está em [docs/banco_dados.
    `ORIGENS_CORS` recebe origens completas, separadas por vírgula (por exemplo, `http://localhost:5173`). `*` permite qualquer origem e não pode ser combinado com credenciais CORS. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
 
 6. **Crie as tabelas iniciais:**
-   Ao iniciar, a aplicação cria as tabelas `usuario`, `espaco` e `espaco_usuario` caso ainda não existam. Essa criação automática não substitui migrações/versionamento de esquema para alterações futuras.
+   Ao iniciar, a aplicação cria as tabelas de usuários, espaços e projetos caso ainda não existam. O versionamento e as alterações do esquema do banco devem seguir o fluxo de migração adotado pelo projeto.
 
 7. **Inicie o Servidor Local:**
 

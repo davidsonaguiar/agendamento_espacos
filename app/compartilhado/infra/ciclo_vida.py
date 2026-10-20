@@ -10,7 +10,7 @@ from app.modulos.espacos.infra.modelos import (
     EspacoPausaFuncionamentoModelo,
     espaco_usuario_tabela,
 )
-from app.modulos.projeto.infra.modelos import (
+from app.modulos.projetos.infra.modelos import (
     ProjetoModelo,
     ProjetoParticipanteModelo,
 )

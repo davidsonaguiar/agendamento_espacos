@@ -5,7 +5,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.compartilhado.infra.ciclo_vida import ciclo_de_vida_app
 from app.compartilhado.infra.config import config
 from app.modulos.espacos.interface.roteador import roteador as roteador_espacos
-from app.modulos.projeto.interface.roteador import roteador as roteador_projetos
+from app.modulos.projetos.interface.roteador import roteador as roteador_projetos
 from app.modulos.usuarios.interface.roteador import roteador as roteador_usuarios
 
 app = FastAPI(
