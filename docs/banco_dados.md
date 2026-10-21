@@ -2,7 +2,7 @@
 
 Esta documentação descreve o **modelo relacional proposto** para o Sistema de Gestão e Agendamento do COLAB (IFAL), incluindo espaços, recursos, solicitações, reservas e monitoria.
 
-> **Estado da implementação:** o diagrama representa o modelo-alvo do sistema. A aplicação cria atualmente as tabelas `usuario`, `espaco`, `espaco_usuario`, `projeto` e `projeto_participante` na inicialização; as demais entidades ainda não estão implementadas no código.
+> **Estado da implementação:** o diagrama representa o modelo conceitual completo. A aplicação implementa atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos) e projetos (incluindo participantes). Recursos, solicitações, anexos, reservas e turnos de monitoria ainda não possuem implementação.
 
 ---
 
@@ -28,9 +28,9 @@ erDiagram
         string descricao
         string finalidade
         int id_responsavel FK
+        int id_criador FK
         int quantidade_participantes
         string documentacao_base
-        string status
     }
 
     PROJETO_PARTICIPANTE {
@@ -43,7 +43,7 @@ erDiagram
         int id PK
         string nome
         string descricao
-        string capacidade
+        int capacidade
         string bloco
         boolean disponibilidade
     }
@@ -58,6 +58,7 @@ erDiagram
         int dia_semana
         time hora_abertura
         time hora_fechamento
+        boolean ativo
         int id_espaco FK
     }
 
@@ -133,9 +134,10 @@ erDiagram
     }
 
     %% Relacionamentos
-    USUARIO ||--o{ PROJETO : "é responsável principal por"
-    USUARIO ||--o{ PROJETO_PARTICIPANTE : "participa como aluno em"
-    PROJETO ||--|{ PROJETO_PARTICIPANTE : "possui equipe formada por"
+    USUARIO ||--o{ PROJETO : "é responsável por"
+    USUARIO ||--o{ PROJETO : "cria"
+    USUARIO ||--o{ PROJETO_PARTICIPANTE : "participa de"
+    PROJETO ||--o{ PROJETO_PARTICIPANTE : "possui participantes"
     
     USUARIO ||--o{ SOLICITACAO : "realiza"
     PROJETO ||--o{ SOLICITACAO : "possui"
@@ -179,9 +181,11 @@ erDiagram
 #### Tabela: `PROJETO`
 *   **Justificativa:** Atende ao RF-04, registrando o contexto que motiva o uso do laboratório (pesquisa, extensão, disciplina).
 *   **Atributos:**
-    *   `descricao`, `finalidade`, `quantidade_participantes`: Informações que balizam a prioridade de análise pela coordenação.
+    *   `descricao`, `finalidade`, `quantidade_participantes`: Informações descritivas do projeto.
+    *   `id_responsavel`: Usuário responsável pelo projeto; pode ser diferente de quem o cadastrou.
+    *   `id_criador`: Usuário autenticado que cadastrou o projeto. A aplicação usa esse dado para autorizar sua exclusão, junto com Administradores.
     *   `documentacao_base`: Link (ex: SIGAA, SUAP) comprovando a existência formal do projeto no instituto.
-    *   `status`: Avaliação administrativa do projeto (`Pendente`, `Aceito` ou `Recusado`), distinta da decisão sobre uma solicitação de uso.
+    *   O projeto não possui status próprio na implementação atual.
 
 #### Tabela: `PROJETO_PARTICIPANTE`
 *   **Justificativa:** Atende à Regra de Negócio RN-19, identificando as pessoas relevantes e autorizadas a permanecer no laboratório sob aquele projeto. É uma tabela associativa (N:N).
@@ -193,7 +197,7 @@ erDiagram
 #### Tabela: `ESPACO`
 *   **Justificativa:** Gestão dos ambientes físicos (salas/bancadas) alvos do agendamento (RN-01).
 *   **Atributos:** `nome`, `descricao`, `capacidade`, `bloco`, `disponibilidade`.
-*   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade e bloco de até 50 caracteres e disponibilidade booleana.
+*   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade inteira, bloco de até 50 caracteres e disponibilidade booleana.
 
 #### Tabela associativa: `ESPACO_USUARIO`
 *   **Implementação atual:** tabela `espaco_usuario`, que relaciona espaços a usuários (relação N:N). As colunas `id_espaco` e `id_usuario` formam a chave primária composta e são chaves estrangeiras para `espaco.id` e `usuario.id`, respectivamente.

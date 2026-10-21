@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.modulos.projeto.dominio.entidades import Projeto, StatusProjeto
+from app.modulos.projetos.dominio.entidade import Projeto
 
 
 class ProjetoRepositorioContrato(ABC):
@@ -9,7 +9,19 @@ class ProjetoRepositorioContrato(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_id_vinculado(
+        self, id_projeto: int, id_usuario: int, incluir_responsabilidade: bool
+    ) -> Projeto | None:
+        pass
+
+    @abstractmethod
     def buscar_todos(self) -> list[Projeto]:
+        pass
+
+    @abstractmethod
+    def buscar_vinculados_a_usuario(
+        self, id_usuario: int, incluir_responsabilidade: bool
+    ) -> list[Projeto]:
         pass
 
     @abstractmethod
@@ -36,10 +48,4 @@ class ProjetoRepositorioContrato(ABC):
 
     @abstractmethod
     def remover_participante(self, id_projeto: int, id_usuario: int) -> Projeto:
-        pass
-
-    @abstractmethod
-    def atualizar_status(
-        self, id_projeto: int, status: StatusProjeto
-    ) -> Projeto:
         pass

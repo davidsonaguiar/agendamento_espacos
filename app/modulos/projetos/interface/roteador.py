@@ -2,32 +2,28 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response, status
 
-from app.compartilhado.dominio.erros import CredenciaisInvalidasErro
-from app.modulos.projeto.casos_uso.avaliar_projeto import AvaliarProjetoCasoDeUso
-from app.modulos.projeto.casos_uso.atualizar_projeto import (
+from app.modulos.projetos.casos_uso.atualizar_projeto import (
     AtualizarProjetoCasoDeUso,
 )
-from app.modulos.projeto.casos_uso.criar_projeto import CriarProjetoCasoDeUso
-from app.modulos.projeto.casos_uso.excluir_projeto import ExcluirProjetoCasoDeUso
-from app.modulos.projeto.casos_uso.gerenciar_participantes import (
+from app.modulos.projetos.casos_uso.criar_projeto import CriarProjetoCasoDeUso
+from app.modulos.projetos.casos_uso.excluir_projeto import ExcluirProjetoCasoDeUso
+from app.modulos.projetos.casos_uso.gerenciar_participantes import (
     GerenciarParticipantesCasoDeUso,
 )
-from app.modulos.projeto.casos_uso.listar_projetos import ListarProjetosCasoDeUso
-from app.modulos.projeto.casos_uso.obter_projeto import ObterProjetoCasoDeUso
-from app.modulos.projeto.dominio.entidades import Projeto
-from app.modulos.projeto.interface.dependencias import (
+from app.modulos.projetos.casos_uso.listar_projetos import ListarProjetosCasoDeUso
+from app.modulos.projetos.casos_uso.obter_projeto import ObterProjetoCasoDeUso
+from app.modulos.projetos.dominio.entidade import Projeto
+from app.modulos.projetos.interface.dependencias import (
     pegar_caso_de_uso_atualizar_projeto,
-    pegar_caso_de_uso_avaliar_projeto,
     pegar_caso_de_uso_criar_projeto,
     pegar_caso_de_uso_excluir_projeto,
     pegar_caso_de_uso_gerenciar_participantes,
     pegar_caso_de_uso_listar_projetos,
     pegar_caso_de_uso_obter_projeto,
 )
-from app.modulos.projeto.interface.esquemas import (
+from app.modulos.projetos.interface.esquemas import (
     AdicionarParticipante,
     AtualizarProjeto,
-    AvaliarProjeto,
     CriarProjeto,
     ProjetoResposta,
 )
@@ -40,22 +36,22 @@ from app.modulos.usuarios.interface.seguranca_http import (
 roteador = APIRouter(prefix="/projetos", tags=["Projetos"])
 
 apenas_admin = VerificarPerfil([PerfilUsuario.ADMINISTRADOR])
+
 criadores_de_projeto = VerificarPerfil(
-    [PerfilUsuario.SERVIDOR, PerfilUsuario.MONITOR]
+    [
+        PerfilUsuario.ADMINISTRADOR,
+        PerfilUsuario.COORDENADOR,
+        PerfilUsuario.SERVIDOR,
+        PerfilUsuario.MONITOR,
+    ]
 )
-
-
-def _id_usuario_autenticado(usuario: Usuario) -> int:
-    if usuario.id is None:
-        raise CredenciaisInvalidasErro()
-    return usuario.id
 
 
 @roteador.post(
     "/",
     response_model=ProjetoResposta,
     status_code=status.HTTP_201_CREATED,
-    summary="Cadastrar um projeto (Servidor ou Monitor)",
+    summary="Cadastrar um projeto (Administrador, Coordenador, Servidor ou Monitor)",
 )
 def criar_projeto(
     dados: CriarProjeto,
@@ -64,7 +60,7 @@ def criar_projeto(
         CriarProjetoCasoDeUso, Depends(pegar_caso_de_uso_criar_projeto)
     ],
 ) -> Projeto:
-    return caso_de_uso.executar(dados, _id_usuario_autenticado(usuario_logado))
+    return caso_de_uso.executar(dados, usuario_logado)
 
 
 @roteador.get(
@@ -72,14 +68,14 @@ def criar_projeto(
     response_model=list[ProjetoResposta],
     status_code=status.HTTP_200_OK,
     summary="Listar projetos (Usuários autenticados)",
-    dependencies=[Depends(obter_usuario_atual)],
 )
 def listar_projetos(
+    usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
     caso_de_uso: Annotated[
         ListarProjetosCasoDeUso, Depends(pegar_caso_de_uso_listar_projetos)
     ],
 ) -> list[Projeto]:
-    return caso_de_uso.executar()
+    return caso_de_uso.executar(usuario_logado)
 
 
 @roteador.get(
@@ -87,15 +83,15 @@ def listar_projetos(
     response_model=ProjetoResposta,
     status_code=status.HTTP_200_OK,
     summary="Consultar um projeto",
-    dependencies=[Depends(obter_usuario_atual)],
 )
 def obter_projeto(
     id_projeto: int,
+    usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
     caso_de_uso: Annotated[
         ObterProjetoCasoDeUso, Depends(pegar_caso_de_uso_obter_projeto)
     ],
 ) -> Projeto:
-    return caso_de_uso.executar(id_projeto)
+    return caso_de_uso.executar(id_projeto, usuario_logado)
 
 
 @roteador.put(
@@ -113,40 +109,23 @@ def atualizar_projeto(
     ],
 ) -> Projeto:
     return caso_de_uso.executar(
-        id_projeto, _id_usuario_autenticado(usuario_logado), dados
+        id_projeto, usuario_logado.id, dados
     )
-
-
-@roteador.patch(
-    "/{id_projeto}/status",
-    response_model=ProjetoResposta,
-    status_code=status.HTTP_200_OK,
-    summary="Definir a avaliação de um projeto (Somente Administrador)",
-    dependencies=[Depends(apenas_admin)],
-)
-def avaliar_projeto(
-    id_projeto: int,
-    dados: AvaliarProjeto,
-    caso_de_uso: Annotated[
-        AvaliarProjetoCasoDeUso, Depends(pegar_caso_de_uso_avaliar_projeto)
-    ],
-) -> Projeto:
-    return caso_de_uso.executar(id_projeto, dados.status)
 
 
 @roteador.delete(
     "/{id_projeto}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Excluir um projeto (Somente Administrador)",
-    dependencies=[Depends(apenas_admin)],
+    summary="Excluir um projeto (Criador ou Administrador)",
 )
 def excluir_projeto(
     id_projeto: int,
+    usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
     caso_de_uso: Annotated[
         ExcluirProjetoCasoDeUso, Depends(pegar_caso_de_uso_excluir_projeto)
     ],
 ) -> Response:
-    caso_de_uso.executar(id_projeto)
+    caso_de_uso.executar(id_projeto, usuario_logado)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -168,7 +147,7 @@ def adicionar_participante(
     return caso_de_uso.adicionar(
         id_projeto,
         dados.id_usuario,
-        _id_usuario_autenticado(usuario_logado),
+        usuario_logado.id,
         dados.papel_no_projeto,
         usuario_logado.perfil == PerfilUsuario.ADMINISTRADOR,
     )
@@ -192,6 +171,6 @@ def remover_participante(
     return caso_de_uso.remover(
         id_projeto,
         id_usuario,
-        _id_usuario_autenticado(usuario_logado),
+        usuario_logado.id,
         usuario_logado.perfil == PerfilUsuario.ADMINISTRADOR,
     )

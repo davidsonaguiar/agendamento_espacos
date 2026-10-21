@@ -2,8 +2,9 @@ from app.compartilhado.dominio.erros import (
     AcessoNegadoErro,
     EntidadeNaoEncontradaErro,
 )
-from app.modulos.projeto.dominio.contratos import ProjetoRepositorioContrato
-from app.modulos.projeto.dominio.entidades import AtualizacaoProjeto, Projeto
+from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
+from app.modulos.projetos.dominio.entidade import Projeto
+from app.modulos.projetos.interface.esquemas import AtualizarProjeto
 
 
 class AtualizarProjetoCasoDeUso:
@@ -14,15 +15,13 @@ class AtualizarProjetoCasoDeUso:
         self,
         id_projeto: int,
         id_usuario: int,
-        dados: AtualizacaoProjeto,
+        dados: AtualizarProjeto,
     ) -> Projeto:
         projeto = self.repositorio.buscar_por_id(id_projeto)
         if not projeto:
             raise EntidadeNaoEncontradaErro("Projeto", id_projeto)
         if projeto.id_responsavel != id_usuario:
-            raise AcessoNegadoErro(
-                "Somente o responsável pode editar os dados do projeto."
-            )
+            raise AcessoNegadoErro("Somente o responsável pode editar os dados do projeto.")
 
         for campo in dados.model_fields_set:
             setattr(projeto, campo, getattr(dados, campo))
