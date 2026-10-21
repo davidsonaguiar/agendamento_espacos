@@ -2,7 +2,7 @@
 
 Esta documentação descreve o **modelo relacional proposto** para o Sistema de Gestão e Agendamento do COLAB (IFAL), incluindo espaços, recursos, solicitações, reservas e monitoria.
 
-> **Estado da implementação:** o diagrama representa o modelo conceitual completo. A aplicação implementa atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos) e projetos (incluindo participantes). Recursos, solicitações, anexos, reservas e turnos de monitoria ainda não possuem implementação.
+> **Estado da implementação:** o diagrama representa o modelo conceitual completo. A aplicação implementa atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos). Horários de solicitação, recursos, anexos, reservas e turnos de monitoria ainda não possuem implementação.
 
 ---
 
@@ -82,12 +82,24 @@ erDiagram
     SOLICITACAO {
         int id PK
         string tipo
+        string finalidade
+        string finalidade
         boolean urgencia
         string status
         string decisao_justificativa
         int id_projeto FK
         int id_solicitante FK
         int id_espaco FK
+    }
+
+    SOLICITACAO_USUARIO {
+        int id_solicitacao PK, FK
+        int id_usuario PK, FK
+    }
+
+    SOLICITACAO_USUARIO {
+        int id_solicitacao PK, FK
+        int id_usuario PK, FK
     }
 
     SOLICITACAO_HORARIO {
@@ -141,6 +153,10 @@ erDiagram
     
     USUARIO ||--o{ SOLICITACAO : "realiza"
     PROJETO ||--o{ SOLICITACAO : "possui"
+    SOLICITACAO ||--o{ SOLICITACAO_USUARIO : "identifica pessoas envolvidas"
+    USUARIO ||--o{ SOLICITACAO_USUARIO : "está envolvido em"
+    SOLICITACAO ||--o{ SOLICITACAO_USUARIO : "identifica pessoas envolvidas"
+    USUARIO ||--o{ SOLICITACAO_USUARIO : "está envolvido em"
     
     ESPACO ||--o{ RECURSO : "aloca equipamentos"
     ESPACO ||--o{ SOLICITACAO : "recebe pedido para"

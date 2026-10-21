@@ -6,6 +6,9 @@ from app.compartilhado.infra.ciclo_vida import ciclo_de_vida_app
 from app.compartilhado.infra.config import config
 from app.modulos.espacos.interface.roteador import roteador as roteador_espacos
 from app.modulos.projetos.interface.roteador import roteador as roteador_projetos
+from app.modulos.solicitacao.interface.roteador import (
+    roteador as roteador_solicitacoes,
+)
 from app.modulos.usuarios.interface.roteador import roteador as roteador_usuarios
 
 app = FastAPI(
@@ -29,6 +32,7 @@ app.add_middleware(
 app.include_router(roteador_usuarios)
 app.include_router(roteador_espacos)
 app.include_router(roteador_projetos)
+app.include_router(roteador_solicitacoes)
 
 @app.get("/", tags=["Status"])
 def raiz():

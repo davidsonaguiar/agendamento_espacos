@@ -55,7 +55,7 @@ app/
     │   ├── dominio/
     │   ├── infra/
     │   └── interface/
-    ├── solicitacao/                       # Estrutura reservada para solicitações
+    ├── solicitacao/                       # Cadastro e acompanhamento de solicitações
     └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
         ├── dominio/
@@ -82,6 +82,7 @@ docs/
 * Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
 * A listagem e a consulta individual de projetos são filtradas por vínculo para Servidores e Alunos. Coordenadores, Administradores e Monitores podem consultar todos os projetos.
 * A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
+* Cadastro e acompanhamento de solicitações: Servidores criam e consultam os próprios pedidos; Administradores e Coordenadores consultam todos.
 * Endpoint de verificação da API em `GET /`.
 
 Os casos de uso, as regras de negócio, as restrições e os fluxos estão detalhados por módulo:
@@ -89,17 +90,17 @@ Os casos de uso, as regras de negócio, as restrições e os fluxos estão detal
 * [Usuários](docs/casos_de_uso/usuarios.md)
 * [Espaços](docs/casos_de_uso/espacos.md)
 * [Projetos](docs/casos_de_uso/projetos.md)
-* [Solicitações (módulo ainda sem implementação)](docs/casos_de_uso/solicitacao.md)
+* [Solicitações](docs/casos_de_uso/solicitacao.md)
 
 A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI) e `/redoc`.
 
 ### Ainda não implementado
 
-O módulo `solicitacao` existe apenas como estrutura de diretórios, sem casos de uso ou rotas implementados. Recursos, solicitações de agendamento, anexos, agenda de reservas e turnos de monitoria também permanecem no modelo conceitual do banco, sem implementação nesta versão.
+A análise/aprovação de solicitações, horários pretendidos, recursos, anexos, agenda de reservas e turnos de monitoria permanecem para etapas futuras.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos) e projetos (incluindo participantes). O restante do diagrama descreve o modelo conceitual de funcionalidades futuras.
+O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos). As demais entidades do diagrama descrevem funcionalidades futuras.
 
 ## 🛠️ Como Executar o Projeto Localmente
 
