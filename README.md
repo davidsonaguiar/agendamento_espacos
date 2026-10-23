@@ -55,7 +55,7 @@ app/
     │   ├── dominio/
     │   ├── infra/
     │   └── interface/
-    ├── solicitacao/                       # Estrutura reservada para solicitações
+    ├── solicitacao/                       # Cadastro e acompanhamento de solicitações
     └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
         ├── dominio/
@@ -82,6 +82,7 @@ docs/
 * Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
 * A listagem e a consulta individual de projetos são filtradas por vínculo para Servidores e Alunos. Coordenadores, Administradores e Monitores podem consultar todos os projetos.
 * A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
+* Cadastro e acompanhamento de solicitações: Servidores criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores e Coordenadores consultam todos e podem gerar links temporários para anexos.
 * Endpoint de verificação da API em `GET /`.
 
 Os casos de uso, as regras de negócio, as restrições e os fluxos estão detalhados por módulo:
@@ -89,17 +90,17 @@ Os casos de uso, as regras de negócio, as restrições e os fluxos estão detal
 * [Usuários](docs/casos_de_uso/usuarios.md)
 * [Espaços](docs/casos_de_uso/espacos.md)
 * [Projetos](docs/casos_de_uso/projetos.md)
-* [Solicitações (módulo ainda sem implementação)](docs/casos_de_uso/solicitacao.md)
+* [Solicitações](docs/casos_de_uso/solicitacao.md)
 
 A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI) e `/redoc`.
 
 ### Ainda não implementado
 
-O módulo `solicitacao` existe apenas como estrutura de diretórios, sem casos de uso ou rotas implementados. Recursos, solicitações de agendamento, anexos, agenda de reservas e turnos de monitoria também permanecem no modelo conceitual do banco, sem implementação nesta versão.
+A análise/aprovação de solicitações, recursos, agenda de reservas e turnos de monitoria permanecem para etapas futuras.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos) e projetos (incluindo participantes). O restante do diagrama descreve o modelo conceitual de funcionalidades futuras.
+O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos, horários e anexos). As demais entidades do diagrama descrevem funcionalidades futuras.
 
 ## 🛠️ Como Executar o Projeto Localmente
 
@@ -154,12 +155,17 @@ O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_d
    ORIGENS_CORS=*
    HOSTS_PERMITIDOS=localhost,127.0.0.1
    PERMITE_CREDENCIAIS_CORS=false
+   SUPABASE_URL=https://<seu-projeto>.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=<chave-service-role>
+   SUPABASE_BUCKET_ANEXOS=anexos-solicitacoes
    ```
 
    `ORIGENS_CORS` recebe origens completas, separadas por vírgula (por exemplo, `http://localhost:5173`). `*` permite qualquer origem e não pode ser combinado com credenciais CORS. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
 
+   Crie também um bucket **privado** no Supabase Storage chamado `anexos-solicitacoes`, com limite de 153.600 bytes e os tipos PDF e DOCX permitidos. `SUPABASE_SERVICE_ROLE_KEY` deve ficar somente no ambiente seguro do backend; nunca a exponha no frontend ou no controle de versão. Para o schema de um banco existente, siga a migração descrita em [`docs/banco_dados.md`](docs/banco_dados.md#migração-no-supabase).
+
 6. **Crie as tabelas iniciais:**
-   Ao iniciar, a aplicação cria as tabelas de usuários, espaços e projetos caso ainda não existam. O versionamento e as alterações do esquema do banco devem seguir o fluxo de migração adotado pelo projeto.
+   Ao iniciar, a aplicação cria tabelas ausentes. A criação automática não altera tabelas existentes; o versionamento e as alterações do schema devem seguir o fluxo de migração do banco.
 
 7. **Inicie o Servidor Local:**
 

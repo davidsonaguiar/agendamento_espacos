@@ -1,35 +1,119 @@
 # Casos de uso — Solicitações
 
-O diretório `app/modulos/solicitacao/` contém arquivos estruturais vazios para
-domínio, infraestrutura e interface. Na versão atual não há casos de uso,
-rotas, esquemas, modelos ORM, repositório ou dependências funcionais
-implementados.
+O módulo permite registrar e acompanhar pedidos de uso de espaços do COLAB.
+A decisão sobre a solicitação pertence a uma etapa futura do fluxo de
+agendamento.
 
-## O que existe
+## Casos implementados
 
-Os arquivos atualmente presentes são:
+### Criar solicitação
 
-- `dominio/contratos.py`
-- `dominio/entidades.py`
-- `infra/modelos.py`
-- `infra/repositorios.py`
-- `interface/dependencias.py`
-- `interface/esquemas.py`
-- `interface/roteador.py`
+- Somente um usuário autenticado com perfil `Servidor` pode cadastrar.
+- O solicitante é obtido do token; não pode ser informado no corpo.
+- Cada pedido referencia exatamente um espaço existente.
+- O projeto é opcional; quando informado, precisa existir.
+- O tipo deve ser `Espaço`, `Recurso` ou `Serviço`.
+- A finalidade é obrigatória.
+- A urgência é registrada como indicação e não garante atendimento prioritário.
+- Usuários envolvidos são referências a contas existentes e ativas. A lista
+  não aceita IDs duplicados nem repetir o próprio solicitante.
+- É obrigatório informar pelo menos um horário. Cada horário contém
+  `data_reserva`, `hora_inicio` e `hora_fim`; a data e o início devem ser
+  futuros, e a hora final deve ser posterior à inicial.
+- A nova solicitação inicia com estado `Pendente` e sem justificativa de
+  decisão.
 
-Eles não definem símbolos ou comportamento. Por isso, não há endpoints sob
-`/solicitacao`, nem fluxo de criação, análise, aprovação, rejeição,
-replanejamento ou reserva que possa ser usado pela aplicação.
+### Listar e consultar solicitações
 
-## Modelo conceitual não implementado
+- `Administrador` e `Coordenador` recebem e podem consultar todas as
+  solicitações.
+- Os demais perfis autenticados recebem somente as solicitações que abriram.
+- Outros usuários autenticados recebem `403 Forbidden` ao consultar uma
+  solicitação alheia.
 
-O modelo relacional proposto em [`../banco_dados.md`](../banco_dados.md)
-descreve solicitações de uso, horários pretendidos, recursos requisitados e
-anexos, além de reservas resultantes de aprovação. Essa descrição é
-conceitual: não constitui regra executável nem contrato de API nesta versão.
+### Adicionar anexo
 
-Não se deve presumir, portanto, validação de disponibilidade, conflito de
-horário, autorização de recursos, controle de urgência, aprovação por
-coordenador ou gravação em agenda. Esses comportamentos dependem da futura
-implementação do módulo.
+- Somente o `Servidor` que abriu a solicitação pode enviar anexos.
+- Cada chamada aceita um arquivo PDF ou DOCX com até 150 KiB (153.600 bytes).
+- A API verifica a extensão e a assinatura/estrutura do conteúdo do arquivo.
+- O objeto é enviado ao bucket privado do Supabase Storage; somente os
+  metadados e o caminho interno do objeto são armazenados no banco.
+- O bucket precisa se chamar `anexos-solicitacoes` (ou corresponder a
+  `SUPABASE_BUCKET_ANEXOS`) e ser configurado como privado.
+- A listagem e a consulta da solicitação retornam nome, tipo e data do anexo,
+  sem expor seu caminho privado.
 
+### Baixar anexo
+
+- O solicitante, Administrador ou Coordenador pode solicitar um link de
+  download temporário.
+- O link assinado expira após 10 minutos.
+- A API não disponibiliza uma URL pública permanente.
+
+## Rotas
+
+| Método | Rota | Acesso |
+|---|---|---|
+| `POST` | `/solicitacoes/` | Servidor |
+| `GET` | `/solicitacoes/` | Usuário autenticado; filtragem conforme perfil |
+| `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador |
+| `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Servidor solicitante |
+| `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador |
+
+Exemplo de corpo para criação:
+
+```json
+{
+  "tipo": "Espaço",
+  "finalidade": "Pesquisa",
+  "urgencia": false,
+  "id_projeto": 1,
+  "id_espaco": 2,
+  "ids_usuarios_envolvidos": [3, 4],
+  "horarios": [
+    {
+      "data_reserva": "2099-10-20",
+      "hora_inicio": "14:00:00",
+      "hora_fim": "16:00:00"
+    },
+    {
+      "data_reserva": "2099-10-22",
+      "hora_inicio": "14:00:00",
+      "hora_fim": "16:00:00"
+    }
+  ]
+}
+```
+
+`id_projeto` e `ids_usuarios_envolvidos` são opcionais. `id_espaco` e a lista
+`horarios` são obrigatórios.
+
+O upload é `multipart/form-data`, no campo `arquivo`. A resposta de
+`POST /solicitacoes/{id_solicitacao}/anexos` contém os metadados do anexo.
+Para obter o download, consulte a rota terminada em `/url`; a resposta contém
+`url_assinada` e `validade_segundos`.
+
+## Configuração do Supabase Storage
+
+1. Crie um bucket privado chamado `anexos-solicitacoes` no projeto Supabase.
+2. Configure o limite do bucket para 153.600 bytes e permita os tipos
+   `application/pdf` e
+   `application/vnd.openxmlformats-officedocument.wordprocessingml.document`.
+3. Configure no ambiente do servidor:
+
+   ```env
+   SUPABASE_URL=https://<seu-projeto>.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=<chave-service-role>
+   SUPABASE_BUCKET_ANEXOS=anexos-solicitacoes
+   ```
+
+   A chave `service_role` deve permanecer somente no ambiente seguro do
+   backend. Não a use no frontend nem a envie em mensagens.
+
+## Fora do escopo atual
+
+Esta etapa não implementa recursos, validação de disponibilidade ou conflitos,
+aprovação/rejeição, pedido de complementação, replanejamento ou criação de
+reservas na agenda. O estado inicial é armazenado como texto para permitir
+que o futuro fluxo de análise introduza seus estados sem restringir o esquema
+atual.
