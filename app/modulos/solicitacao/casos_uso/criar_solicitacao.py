@@ -8,6 +8,7 @@ from app.modulos.solicitacao.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
 from app.modulos.solicitacao.dominio.entidades import (
+    HorarioSolicitacao,
     NovaSolicitacao,
     Solicitacao,
     UsuarioEnvolvido,
@@ -72,5 +73,13 @@ class CriarSolicitacaoCasoDeUso:
             id_solicitante=id_solicitante,
             id_espaco=dados.id_espaco,
             usuarios_envolvidos=usuarios_envolvidos,
+            horarios=[
+                HorarioSolicitacao(
+                    data_reserva=horario.data_reserva,
+                    hora_inicio=horario.hora_inicio,
+                    hora_fim=horario.hora_fim,
+                )
+                for horario in dados.horarios
+            ],
         )
         return self.repositorio_solicitacao.salvar(solicitacao)

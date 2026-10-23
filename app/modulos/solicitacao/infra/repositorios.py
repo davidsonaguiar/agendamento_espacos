@@ -1,14 +1,26 @@
+from datetime import datetime
+
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.compartilhado.dominio.erros import EntidadeNaoEncontradaErro
+from app.compartilhado.dominio.erros import (
+    EntidadeNaoEncontradaErro,
+    FalhaPersistenciaErro,
+)
 from app.modulos.solicitacao.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
 from app.modulos.solicitacao.dominio.entidades import (
+    AnexoSolicitacao,
+    HorarioSolicitacao,
     Solicitacao,
     UsuarioEnvolvido,
 )
-from app.modulos.solicitacao.infra.modelos import SolicitacaoModelo
+from app.modulos.solicitacao.infra.modelos import (
+    AnexoSolicitacaoModelo,
+    SolicitacaoHorarioModelo,
+    SolicitacaoModelo,
+)
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
 
@@ -19,7 +31,11 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
     def buscar_por_id(self, id_solicitacao: int) -> Solicitacao | None:
         modelo = (
             self.db.query(SolicitacaoModelo)
-            .options(joinedload(SolicitacaoModelo.usuarios_envolvidos))
+            .options(
+                joinedload(SolicitacaoModelo.usuarios_envolvidos),
+                joinedload(SolicitacaoModelo.horarios),
+                joinedload(SolicitacaoModelo.anexos),
+            )
             .filter(SolicitacaoModelo.id == id_solicitacao)
             .first()
         )
@@ -28,7 +44,11 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
     def buscar_todas(self) -> list[Solicitacao]:
         modelos = (
             self.db.query(SolicitacaoModelo)
-            .options(joinedload(SolicitacaoModelo.usuarios_envolvidos))
+            .options(
+                joinedload(SolicitacaoModelo.usuarios_envolvidos),
+                joinedload(SolicitacaoModelo.horarios),
+                joinedload(SolicitacaoModelo.anexos),
+            )
             .all()
         )
         return [self._converter(modelo) for modelo in modelos]
@@ -36,7 +56,11 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
     def buscar_por_solicitante(self, id_solicitante: int) -> list[Solicitacao]:
         modelos = (
             self.db.query(SolicitacaoModelo)
-            .options(joinedload(SolicitacaoModelo.usuarios_envolvidos))
+            .options(
+                joinedload(SolicitacaoModelo.usuarios_envolvidos),
+                joinedload(SolicitacaoModelo.horarios),
+                joinedload(SolicitacaoModelo.anexos),
+            )
             .filter(SolicitacaoModelo.id_solicitante == id_solicitante)
             .all()
         )
@@ -72,6 +96,14 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             id_solicitante=solicitacao.id_solicitante,
             id_espaco=solicitacao.id_espaco,
             usuarios_envolvidos=usuarios,
+            horarios=[
+                SolicitacaoHorarioModelo(
+                    data_reserva=horario.data_reserva,
+                    hora_inicio=horario.hora_inicio,
+                    hora_fim=horario.hora_fim,
+                )
+                for horario in solicitacao.horarios
+            ],
         )
         self.db.add(modelo)
         self.db.commit()
@@ -80,6 +112,43 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         if solicitacao_salva is None:
             raise EntidadeNaoEncontradaErro("Solicitação", modelo.id)
         return solicitacao_salva
+
+    def buscar_anexo(
+        self, id_solicitacao: int, id_anexo: int
+    ) -> AnexoSolicitacao | None:
+        modelo = (
+            self.db.query(AnexoSolicitacaoModelo)
+            .filter(
+                AnexoSolicitacaoModelo.id == id_anexo,
+                AnexoSolicitacaoModelo.id_solicitacao == id_solicitacao,
+            )
+            .first()
+        )
+        return self._converter_anexo(modelo) if modelo else None
+
+    def salvar_anexo(
+        self,
+        id_solicitacao: int,
+        nome_arquivo: str,
+        url_caminho: str,
+        tipo_arquivo: str,
+        data_upload: datetime,
+    ) -> AnexoSolicitacao:
+        modelo = AnexoSolicitacaoModelo(
+            id_solicitacao=id_solicitacao,
+            nome_arquivo=nome_arquivo,
+            url_caminho=url_caminho,
+            tipo_arquivo=tipo_arquivo,
+            data_upload=data_upload,
+        )
+        self.db.add(modelo)
+        try:
+            self.db.commit()
+        except SQLAlchemyError as erro:
+            self.db.rollback()
+            raise FalhaPersistenciaErro() from erro
+        self.db.refresh(modelo)
+        return self._converter_anexo(modelo)
 
     @staticmethod
     def _converter(modelo: SolicitacaoModelo) -> Solicitacao:
@@ -100,4 +169,27 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
                 )
                 for usuario in modelo.usuarios_envolvidos
             ],
+            horarios=[
+                HorarioSolicitacao(
+                    id=horario.id,
+                    data_reserva=horario.data_reserva,
+                    hora_inicio=horario.hora_inicio,
+                    hora_fim=horario.hora_fim,
+                )
+                for horario in modelo.horarios
+            ],
+            anexos=[
+                SolicitacaoRepositorio._converter_anexo(anexo)
+                for anexo in modelo.anexos
+            ],
+        )
+
+    @staticmethod
+    def _converter_anexo(modelo: AnexoSolicitacaoModelo) -> AnexoSolicitacao:
+        return AnexoSolicitacao(
+            id=modelo.id,
+            nome_arquivo=modelo.nome_arquivo,
+            url_caminho=modelo.url_caminho,
+            tipo_arquivo=modelo.tipo_arquivo,
+            data_upload=modelo.data_upload,
         )

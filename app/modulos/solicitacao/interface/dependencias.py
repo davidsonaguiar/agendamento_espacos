@@ -1,5 +1,8 @@
 from app.modulos.espacos.infra.repositorios import EspacoRepositorio
 from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
+from app.modulos.solicitacao.casos_uso.anexar_arquivo import (
+    AnexarArquivoSolicitacaoCasoDeUso,
+)
 from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
     CriarSolicitacaoCasoDeUso,
 )
@@ -8,6 +11,12 @@ from app.modulos.solicitacao.casos_uso.listar_solicitacoes import (
 )
 from app.modulos.solicitacao.casos_uso.obter_solicitacao import (
     ObterSolicitacaoCasoDeUso,
+)
+from app.modulos.solicitacao.casos_uso.obter_url_anexo import (
+    ObterUrlAnexoCasoDeUso,
+)
+from app.modulos.solicitacao.infra.armazenamento_supabase import (
+    ArmazenamentoSupabase,
 )
 from app.modulos.solicitacao.infra.repositorios import SolicitacaoRepositorio
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
@@ -35,3 +44,21 @@ def pegar_caso_de_uso_obter_solicitacao(
     db: SessaoBD,
 ) -> ObterSolicitacaoCasoDeUso:
     return ObterSolicitacaoCasoDeUso(SolicitacaoRepositorio(db))
+
+
+def pegar_caso_de_uso_anexar_arquivo(
+    db: SessaoBD,
+) -> AnexarArquivoSolicitacaoCasoDeUso:
+    return AnexarArquivoSolicitacaoCasoDeUso(
+        SolicitacaoRepositorio(db),
+        ArmazenamentoSupabase(),
+    )
+
+
+def pegar_caso_de_uso_obter_url_anexo(
+    db: SessaoBD,
+) -> ObterUrlAnexoCasoDeUso:
+    return ObterUrlAnexoCasoDeUso(
+        SolicitacaoRepositorio(db),
+        ArmazenamentoSupabase(),
+    )

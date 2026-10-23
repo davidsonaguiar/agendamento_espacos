@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
-from app.modulos.solicitacao.dominio.entidades import Solicitacao
+from app.modulos.solicitacao.dominio.entidades import AnexoSolicitacao, Solicitacao
 
 
 class SolicitacaoRepositorioContrato(ABC):
@@ -18,4 +19,39 @@ class SolicitacaoRepositorioContrato(ABC):
 
     @abstractmethod
     def salvar(self, solicitacao: Solicitacao) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def buscar_anexo(
+        self, id_solicitacao: int, id_anexo: int
+    ) -> AnexoSolicitacao | None:
+        pass
+
+    @abstractmethod
+    def salvar_anexo(
+        self,
+        id_solicitacao: int,
+        nome_arquivo: str,
+        url_caminho: str,
+        tipo_arquivo: str,
+        data_upload: datetime,
+    ) -> AnexoSolicitacao:
+        pass
+
+
+class ArmazenamentoAnexoContrato(ABC):
+    @abstractmethod
+    def enviar(
+        self, caminho: str, conteudo: bytes, tipo_conteudo: str
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def remover(self, caminho: str) -> None:
+        pass
+
+    @abstractmethod
+    def criar_url_assinada(
+        self, caminho: str, validade_segundos: int
+    ) -> str:
         pass

@@ -1,4 +1,4 @@
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +9,9 @@ class Config(BaseSettings):
     origens_cors: str = "*"
     hosts_permitidos: str = "localhost,127.0.0.1"
     permite_credenciais_cors: bool = False
+    supabase_url: str | None = None
+    supabase_service_role_key: SecretStr | None = None
+    supabase_bucket_anexos: str = "anexos-solicitacoes"
 
     @property
     def lista_origens_cors(self) -> list[str]:

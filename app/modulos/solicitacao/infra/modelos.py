@@ -1,11 +1,14 @@
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
+    DateTime,
     Enum as SQLEnum,
     ForeignKey,
     Integer,
     String,
     Table,
+    Time,
 )
 from sqlalchemy.orm import relationship
 
@@ -60,3 +63,50 @@ class SolicitacaoModelo(Base):
         UsuarioModelo,
         secondary=solicitacao_usuario_tabela,
     )
+    horarios = relationship(
+        "SolicitacaoHorarioModelo",
+        back_populates="solicitacao",
+        cascade="all, delete-orphan",
+        order_by="SolicitacaoHorarioModelo.data_reserva, SolicitacaoHorarioModelo.hora_inicio",
+    )
+    anexos = relationship(
+        "AnexoSolicitacaoModelo",
+        back_populates="solicitacao",
+        cascade="all, delete-orphan",
+        order_by="AnexoSolicitacaoModelo.data_upload",
+    )
+
+
+class SolicitacaoHorarioModelo(Base):
+    __tablename__ = "solicitacao_horario"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    data_reserva = Column(Date, nullable=False)
+    hora_inicio = Column(Time, nullable=False)
+    hora_fim = Column(Time, nullable=False)
+    id_solicitacao = Column(
+        Integer,
+        ForeignKey("solicitacao.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    solicitacao = relationship("SolicitacaoModelo", back_populates="horarios")
+
+
+class AnexoSolicitacaoModelo(Base):
+    __tablename__ = "anexo"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    nome_arquivo = Column(String(255), nullable=False)
+    url_caminho = Column(String(500), nullable=False)
+    tipo_arquivo = Column(String(100), nullable=False)
+    data_upload = Column(DateTime(timezone=True), nullable=False)
+    id_solicitacao = Column(
+        Integer,
+        ForeignKey("solicitacao.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    solicitacao = relationship("SolicitacaoModelo", back_populates="anexos")
