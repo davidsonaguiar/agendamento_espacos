@@ -13,6 +13,9 @@ from app.modulos.espacos.casos_uso.gerenciar_pausa_espaco import (
 )
 from app.modulos.espacos.casos_uso.gerenciar_vinculos import GerenciarVinculosCasoDeUso
 from app.modulos.espacos.casos_uso.listar_espacos import ListarEspacosCasoDeUso
+from app.modulos.espacos.casos_uso.listar_horarios_espaco import (
+    ListarHorariosEspacoCasoDeUso,
+)
 from app.modulos.espacos.casos_uso.reativar_espaco import ReativarEspacoCasoDeUso
 from app.modulos.espacos.interface.dependencias import (
     pegar_caso_de_uso_atualizar_espaco,
@@ -22,6 +25,7 @@ from app.modulos.espacos.interface.dependencias import (
     pegar_caso_de_uso_gerenciar_pausas,
     pegar_caso_de_uso_gerenciar_vinculos,
     pegar_caso_de_uso_listar_espacos,
+    pegar_caso_de_uso_listar_horarios_espaco,
     pegar_caso_de_uso_reativar_espaco,
 )
 from app.modulos.espacos.interface.esquemas import (
@@ -30,6 +34,7 @@ from app.modulos.espacos.interface.esquemas import (
     CriarEspaco,
     CriarPausaFuncionamento,
     EspacoResposta,
+    HorarioFuncionamentoResposta,
     PausaResposta,
 )
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
@@ -150,6 +155,23 @@ def atualizar_horario_funcionamento(
     ],
 ):
     return caso_de_uso.executar(id_espaco, dados)
+
+
+@roteador.get(
+    "/{id_espaco}/horarios",
+    response_model=list[HorarioFuncionamentoResposta],
+    status_code=status.HTTP_200_OK,
+    summary="Consultar horários de funcionamento do espaço",
+)
+def listar_horarios_funcionamento(
+    id_espaco: int,
+    usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
+    caso_de_uso: Annotated[
+        ListarHorariosEspacoCasoDeUso,
+        Depends(pegar_caso_de_uso_listar_horarios_espaco),
+    ],
+):
+    return caso_de_uso.executar(id_espaco)
 
 
 @roteador.post(

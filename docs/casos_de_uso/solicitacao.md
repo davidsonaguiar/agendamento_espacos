@@ -1,10 +1,28 @@
 # Casos de uso — Solicitações
 
 O módulo permite registrar e acompanhar pedidos de uso de espaços do COLAB.
-A decisão sobre a solicitação pertence a uma etapa futura do fluxo de
-agendamento.
+A decisão da solicitação é responsabilidade deste módulo; validação de
+disponibilidade e criação de reservas oficiais são delegadas ao módulo
+`agendamento`.
 
 ## Casos implementados
+
+### Analisar e decidir solicitação
+
+- Somente `Administrador` e `Coordenador` podem decidir.
+- Apenas solicitações `Pendente` podem receber decisão; decisões posteriores
+  não são permitidas.
+- A decisão deve ser `Aprovado` ou `Rejeitado` e deve incluir justificativa
+  com ao menos três caracteres.
+- Para aprovar, o caso de uso delega ao módulo `agendamento` a verificação dos
+  horários contra o funcionamento do espaço, pausas, conflitos e os demais
+  horários da própria solicitação.
+- A aprovação cria uma reserva confirmada para cada horário e atualiza o
+  status e a justificativa na mesma transação de banco.
+- Se qualquer horário conflitar ou estiver fora do funcionamento, a
+  solicitação permanece pendente e nenhuma reserva é criada.
+- A rejeição registra status e justificativa sem criar reservas.
+- As reservas podem ser consultadas pela API de [agendamentos](./agendamento.md).
 
 ### Criar solicitação
 
@@ -56,6 +74,7 @@ agendamento.
 |---|---|---|
 | `POST` | `/solicitacoes/` | Servidor |
 | `GET` | `/solicitacoes/` | Usuário autenticado; filtragem conforme perfil |
+| `PATCH` | `/solicitacoes/{id_solicitacao}/decisao` | Administrador ou Coordenador |
 | `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador |
 | `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Servidor solicitante |
 | `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador |
@@ -88,6 +107,15 @@ Exemplo de corpo para criação:
 `id_projeto` e `ids_usuarios_envolvidos` são opcionais. `id_espaco` e a lista
 `horarios` são obrigatórios.
 
+Exemplo de corpo para aprovar ou rejeitar:
+
+```json
+{
+  "status": "Aprovado",
+  "justificativa": "Horários verificados e aprovados."
+}
+```
+
 O upload é `multipart/form-data`, no campo `arquivo`. A resposta de
 `POST /solicitacoes/{id_solicitacao}/anexos` contém os metadados do anexo.
 Para obter o download, consulte a rota terminada em `/url`; a resposta contém
@@ -112,8 +140,6 @@ Para obter o download, consulte a rota terminada em `/url`; a resposta contém
 
 ## Fora do escopo atual
 
-Esta etapa não implementa recursos, validação de disponibilidade ou conflitos,
-aprovação/rejeição, pedido de complementação, replanejamento ou criação de
-reservas na agenda. O estado inicial é armazenado como texto para permitir
-que o futuro fluxo de análise introduza seus estados sem restringir o esquema
-atual.
+Esta etapa não implementa recursos, pedido de complementação ou
+replanejamento. A decisão cria reservas na agenda apenas ao aprovar uma
+solicitação.

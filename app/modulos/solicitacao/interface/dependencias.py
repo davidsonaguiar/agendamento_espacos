@@ -1,10 +1,18 @@
 from app.modulos.espacos.infra.repositorios import EspacoRepositorio
+from app.modulos.agendamento.casos_uso.reservar_horarios_aprovados import (
+    ReservarHorariosAprovadosCasoDeUso,
+)
+from app.modulos.agendamento.infra.repositorios import AgendamentoRepositorio
+from app.modulos.espacos.infra.repositorios import RegrasHorarioRepositorio
 from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
 from app.modulos.solicitacao.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
 )
 from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
     CriarSolicitacaoCasoDeUso,
+)
+from app.modulos.solicitacao.casos_uso.decidir_solicitacao import (
+    DecidirSolicitacaoCasoDeUso,
 )
 from app.modulos.solicitacao.casos_uso.listar_solicitacoes import (
     ListarSolicitacoesCasoDeUso,
@@ -44,6 +52,18 @@ def pegar_caso_de_uso_obter_solicitacao(
     db: SessaoBD,
 ) -> ObterSolicitacaoCasoDeUso:
     return ObterSolicitacaoCasoDeUso(SolicitacaoRepositorio(db))
+
+
+def pegar_caso_de_uso_decidir_solicitacao(
+    db: SessaoBD,
+) -> DecidirSolicitacaoCasoDeUso:
+    return DecidirSolicitacaoCasoDeUso(
+        SolicitacaoRepositorio(db),
+        ReservarHorariosAprovadosCasoDeUso(
+            AgendamentoRepositorio(db),
+            RegrasHorarioRepositorio(db),
+        ),
+    )
 
 
 def pegar_caso_de_uso_anexar_arquivo(

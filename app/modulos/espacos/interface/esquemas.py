@@ -32,6 +32,18 @@ class AtualizarHorario(BaseModel):
     hora_fechamento: time = Field(..., description="Horário de fechamento, ex: 18:00")
     ativo: bool = Field(..., description="Define se o laboratório funciona neste dia específico")
 
+
+class HorarioFuncionamentoResposta(BaseModel):
+    id: int
+    dia_semana: int
+    hora_abertura: time
+    hora_fechamento: time
+    ativo: bool
+    id_espaco: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CriarPausaFuncionamento(BaseModel):
     data_inicio: date
     data_fim: date

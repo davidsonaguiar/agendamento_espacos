@@ -56,6 +56,11 @@ app/
     │   ├── infra/
     │   └── interface/
     ├── solicitacao/                       # Cadastro e acompanhamento de solicitações
+    ├── agendamento/                       # Disponibilidade e reservas oficiais
+    │   ├── casos_uso/
+    │   ├── dominio/
+    │   ├── infra/
+    │   └── interface/
     └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
         ├── dominio/
@@ -68,6 +73,7 @@ docs/
 ├── banco_dados.md
 └── casos_de_uso/
     ├── espacos.md
+    ├── agendamento.md
     ├── projetos.md
     ├── solicitacao.md
     └── usuarios.md
@@ -82,13 +88,15 @@ docs/
 * Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
 * A listagem e a consulta individual de projetos são filtradas por vínculo para Servidores e Alunos. Coordenadores, Administradores e Monitores podem consultar todos os projetos.
 * A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
-* Cadastro e acompanhamento de solicitações: Servidores criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores e Coordenadores consultam todos e podem gerar links temporários para anexos.
+* Cadastro e acompanhamento de solicitações: Servidores criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores e Coordenadores consultam todos, podem gerar links temporários para anexos e decidir solicitações.
+* Consulta de disponibilidade e reservas confirmadas pelo módulo de agendamento; aprovações geram reservas oficiais na agenda.
 * Endpoint de verificação da API em `GET /`.
 
 Os casos de uso, as regras de negócio, as restrições e os fluxos estão detalhados por módulo:
 
 * [Usuários](docs/casos_de_uso/usuarios.md)
 * [Espaços](docs/casos_de_uso/espacos.md)
+* [Agendamentos](docs/casos_de_uso/agendamento.md)
 * [Projetos](docs/casos_de_uso/projetos.md)
 * [Solicitações](docs/casos_de_uso/solicitacao.md)
 
@@ -96,11 +104,11 @@ A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI
 
 ### Ainda não implementado
 
-A análise/aprovação de solicitações, recursos, agenda de reservas e turnos de monitoria permanecem para etapas futuras.
+A gestão de recursos, associações de recursos às solicitações/reservas e turnos de monitoria permanece para etapas futuras.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos, horários e anexos). As demais entidades do diagrama descrevem funcionalidades futuras.
+O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes), solicitações (incluindo usuários envolvidos, horários e anexos) e reservas na agenda. As demais entidades do diagrama descrevem funcionalidades futuras.
 
 ## 🛠️ Como Executar o Projeto Localmente
 

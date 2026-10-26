@@ -1,10 +1,13 @@
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime, time, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.compartilhado.dominio.erros import EntidadeNaoEncontradaErro
+from app.compartilhado.dominio.erros import (
+    EntidadeNaoEncontradaErro,
+)
 from app.modulos.espacos.dominio.contratos import (
     EspacoRepositorioContrato,
     RegrasHorarioRepositorioContrato,
@@ -158,6 +161,65 @@ class RegrasHorarioRepositorio(RegrasHorarioRepositorioContrato):
         ).order_by(EspacoHorarioFuncionamentoModelo.dia_semana).all()
         
         return [EspacoHorarioFuncionamento.model_validate(m) for m in modelos]
+
+    def verificar_funcionamento(
+        self,
+        id_espaco: int,
+        data_hora_inicio: datetime,
+        data_hora_fim: datetime,
+    ) -> str | None:
+        espaco = (
+            self.db.query(EspacoModelo)
+            .filter(EspacoModelo.id == id_espaco)
+            .first()
+        )
+        if espaco is None:
+            raise EntidadeNaoEncontradaErro("Espaço", id_espaco)
+        if not espaco.disponibilidade:
+            return "O espaço está desativado."
+
+        primeiro_dia = data_hora_inicio.date()
+        ultimo_dia = data_hora_fim.date()
+        if data_hora_fim.time() == time.min and ultimo_dia > primeiro_dia:
+            ultimo_dia -= timedelta(days=1)
+
+        pausas = self.buscar_pausas_por_espaco(id_espaco)
+        horarios_por_dia: dict[int, list[EspacoHorarioFuncionamento]] = {}
+        for horario in self.buscar_horarios_por_espaco(id_espaco):
+            if horario.ativo:
+                horarios_por_dia.setdefault(horario.dia_semana, []).append(horario)
+
+        dia_atual = primeiro_dia
+        while dia_atual <= ultimo_dia:
+            if any(
+                pausa.data_inicio <= dia_atual <= pausa.data_fim
+                for pausa in pausas
+            ):
+                return f"O espaço está fechado em {dia_atual.isoformat()}."
+
+            inicio_dia = max(
+                data_hora_inicio,
+                datetime.combine(dia_atual, time.min),
+            )
+            fim_dia = min(
+                data_hora_fim,
+                datetime.combine(dia_atual + timedelta(days=1), time.min),
+            )
+            dia_semana = (dia_atual.weekday() + 1) % 7
+            horarios = horarios_por_dia.get(dia_semana, [])
+            esta_no_horario = any(
+                inicio_dia >= datetime.combine(dia_atual, horario.hora_abertura)
+                and fim_dia <= datetime.combine(dia_atual, horario.hora_fechamento)
+                for horario in horarios
+            )
+            if not esta_no_horario:
+                return (
+                    "O período solicitado está fora do horário de funcionamento "
+                    f"em {dia_atual.isoformat()}."
+                )
+            dia_atual += timedelta(days=1)
+
+        return None
 
     def adicionar_pausa(self, pausa: EspacoPausaFuncionamento) -> EspacoPausaFuncionamento:
         modelo = EspacoPausaFuncionamentoModelo(

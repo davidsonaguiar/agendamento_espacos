@@ -1,4 +1,13 @@
-from sqlalchemy import Boolean, Column, Date, ForeignKey, Integer, String, Table, Time
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Time,
+)
 from sqlalchemy.orm import relationship
 
 from app.compartilhado.infra.banco_dados import Base

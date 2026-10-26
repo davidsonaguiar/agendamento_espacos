@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
-
 from app.modulos.espacos.dominio.entidades import (
     Espaco,
     EspacoHorarioFuncionamento,

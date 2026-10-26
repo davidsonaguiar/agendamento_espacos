@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.modulos.solicitacao.dominio.entidades import (
+    DecisaoSolicitacao,
     NovaSolicitacao,
     Solicitacao,
 )
@@ -30,3 +31,7 @@ class SolicitacaoResposta(Solicitacao):
 class UrlAnexoResposta(BaseModel):
     url_assinada: str
     validade_segundos: int
+
+
+class DecidirSolicitacao(DecisaoSolicitacao):
+    pass

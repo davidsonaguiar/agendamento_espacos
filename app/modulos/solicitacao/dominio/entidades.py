@@ -14,6 +14,13 @@ class TipoSolicitacao(str, Enum):
 
 class StatusSolicitacao(str, Enum):
     PENDENTE = "Pendente"
+    APROVADO = "Aprovado"
+    REJEITADO = "Rejeitado"
+
+
+class StatusDecisaoSolicitacao(str, Enum):
+    APROVADO = StatusSolicitacao.APROVADO.value
+    REJEITADO = StatusSolicitacao.REJEITADO.value
 
 
 class NovoHorarioSolicitacao(BaseModel):
@@ -94,3 +101,16 @@ class Solicitacao(BaseModel):
     anexos: list[AnexoSolicitacao] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DecisaoSolicitacao(BaseModel):
+    status: StatusDecisaoSolicitacao
+    justificativa: str = Field(..., min_length=3, max_length=1000)
+
+    @field_validator("justificativa")
+    @classmethod
+    def validar_justificativa(cls, valor: str) -> str:
+        justificativa = valor.strip()
+        if len(justificativa) < 3:
+            raise ValueError("A justificativa deve conter ao menos 3 caracteres.")
+        return justificativa

@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.compartilhado.dominio.erros import (
+    ConflitoDeDadosErro,
     EntidadeNaoEncontradaErro,
     FalhaPersistenciaErro,
 )
@@ -14,6 +15,7 @@ from app.modulos.solicitacao.dominio.entidades import (
     AnexoSolicitacao,
     HorarioSolicitacao,
     Solicitacao,
+    StatusSolicitacao,
     UsuarioEnvolvido,
 )
 from app.modulos.solicitacao.infra.modelos import (
@@ -112,6 +114,44 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         if solicitacao_salva is None:
             raise EntidadeNaoEncontradaErro("Solicitação", modelo.id)
         return solicitacao_salva
+
+    def decidir(
+        self,
+        id_solicitacao: int,
+        status: StatusSolicitacao,
+        justificativa: str,
+    ) -> Solicitacao:
+        try:
+            modelo = (
+                self.db.query(SolicitacaoModelo)
+                .options(joinedload(SolicitacaoModelo.horarios))
+                .filter(SolicitacaoModelo.id == id_solicitacao)
+                .with_for_update()
+                .first()
+            )
+            if modelo is None:
+                raise EntidadeNaoEncontradaErro(
+                    "Solicitação", id_solicitacao
+                )
+            if modelo.status != StatusSolicitacao.PENDENTE.value:
+                raise ConflitoDeDadosErro(
+                    "Somente solicitações pendentes podem receber decisão."
+                )
+            modelo.status = status.value
+            modelo.decisao_justificativa = justificativa
+            self.db.commit()
+            solicitacao_decidida = self.buscar_por_id(id_solicitacao)
+            if solicitacao_decidida is None:
+                raise EntidadeNaoEncontradaErro(
+                    "Solicitação", id_solicitacao
+                )
+            return solicitacao_decidida
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def rollback(self) -> None:
+        self.db.rollback()
 
     def buscar_anexo(
         self, id_solicitacao: int, id_anexo: int

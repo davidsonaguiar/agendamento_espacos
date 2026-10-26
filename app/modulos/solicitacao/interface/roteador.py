@@ -3,12 +3,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, UploadFile, status
 
 from app.compartilhado.dominio.erros import CredenciaisInvalidasErro
-from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
-    CriarSolicitacaoCasoDeUso,
-)
 from app.modulos.solicitacao.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
     LIMITE_ANEXO_BYTES,
+)
+from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
+    CriarSolicitacaoCasoDeUso,
+)
+from app.modulos.solicitacao.casos_uso.decidir_solicitacao import (
+    DecidirSolicitacaoCasoDeUso,
 )
 from app.modulos.solicitacao.casos_uso.listar_solicitacoes import (
     ListarSolicitacoesCasoDeUso,
@@ -21,8 +24,9 @@ from app.modulos.solicitacao.casos_uso.obter_url_anexo import (
 )
 from app.modulos.solicitacao.dominio.entidades import Solicitacao
 from app.modulos.solicitacao.interface.dependencias import (
-    pegar_caso_de_uso_criar_solicitacao,
     pegar_caso_de_uso_anexar_arquivo,
+    pegar_caso_de_uso_criar_solicitacao,
+    pegar_caso_de_uso_decidir_solicitacao,
     pegar_caso_de_uso_listar_solicitacoes,
     pegar_caso_de_uso_obter_solicitacao,
     pegar_caso_de_uso_obter_url_anexo,
@@ -30,6 +34,7 @@ from app.modulos.solicitacao.interface.dependencias import (
 from app.modulos.solicitacao.interface.esquemas import (
     AnexoSolicitacaoResposta,
     CriarSolicitacao,
+    DecidirSolicitacao,
     SolicitacaoResposta,
     UrlAnexoResposta,
 )
@@ -41,6 +46,9 @@ from app.modulos.usuarios.interface.seguranca_http import (
 
 roteador = APIRouter(prefix="/solicitacoes", tags=["Solicitações"])
 apenas_servidor = VerificarPerfil([PerfilUsuario.SERVIDOR])
+gestores_solicitacao = VerificarPerfil(
+    [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR]
+)
 
 
 def _id_usuario_autenticado(usuario: Usuario) -> int:
@@ -82,6 +90,24 @@ def listar_solicitacoes(
     ],
 ) -> list[Solicitacao]:
     return caso_de_uso.executar(usuario_logado)
+
+
+@roteador.patch(
+    "/{id_solicitacao}/decisao",
+    response_model=SolicitacaoResposta,
+    status_code=status.HTTP_200_OK,
+    summary="Aprovar ou rejeitar uma solicitação",
+)
+def decidir_solicitacao(
+    id_solicitacao: int,
+    decisao: DecidirSolicitacao,
+    usuario_logado: Annotated[Usuario, Depends(gestores_solicitacao)],
+    caso_de_uso: Annotated[
+        DecidirSolicitacaoCasoDeUso,
+        Depends(pegar_caso_de_uso_decidir_solicitacao),
+    ],
+) -> Solicitacao:
+    return caso_de_uso.executar(id_solicitacao, decisao)
 
 
 @roteador.post(
