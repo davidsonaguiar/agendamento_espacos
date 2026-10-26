@@ -3,7 +3,7 @@ from app.compartilhado.dominio.erros import (
     CredenciaisInvalidasErro,
     EntidadeNaoEncontradaErro,
 )
-from app.modulos.solicitacao.dominio.contratos import (
+from app.modulos.agendamento.dominio.contratos import (
     ArmazenamentoAnexoContrato,
     SolicitacaoRepositorioContrato,
 )

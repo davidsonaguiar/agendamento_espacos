@@ -1,8 +1,9 @@
-# Casos de uso — Solicitações
+# Casos de uso — Agendamento
 
 O módulo permite registrar e acompanhar pedidos de uso de espaços do COLAB.
-A decisão sobre a solicitação pertence a uma etapa futura do fluxo de
-agendamento.
+A análise e a decisão administrativa pertencem a uma etapa futura do fluxo de
+agendamento; o criador ou um Administrador já pode cancelar solicitações
+pendentes.
 
 ## Casos implementados
 
@@ -31,6 +32,16 @@ agendamento.
 - Outros usuários autenticados recebem `403 Forbidden` ao consultar uma
   solicitação alheia.
 
+### Cancelar solicitação
+
+- O criador da solicitação ou um `Administrador` pode cancelá-la.
+- Coordenadores e demais usuários não podem cancelar solicitações de terceiros.
+- Somente solicitações com estado `Pendente` podem ser canceladas.
+- O cancelamento mantém a solicitação e seus dados no banco, alterando o estado
+  para `Cancelada`; não apaga horários nem anexos.
+- Uma tentativa de cancelar uma solicitação já cancelada ou com outro estado
+  retorna `409 Conflict`.
+
 ### Adicionar anexo
 
 - Somente o `Servidor` que abriu a solicitação pode enviar anexos.
@@ -57,6 +68,7 @@ agendamento.
 | `POST` | `/solicitacoes/` | Servidor |
 | `GET` | `/solicitacoes/` | Usuário autenticado; filtragem conforme perfil |
 | `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador |
+| `PATCH` | `/solicitacoes/{id_solicitacao}` | Criador ou Administrador |
 | `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Servidor solicitante |
 | `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador |
 
@@ -114,6 +126,5 @@ Para obter o download, consulte a rota terminada em `/url`; a resposta contém
 
 Esta etapa não implementa recursos, validação de disponibilidade ou conflitos,
 aprovação/rejeição, pedido de complementação, replanejamento ou criação de
-reservas na agenda. O estado inicial é armazenado como texto para permitir
-que o futuro fluxo de análise introduza seus estados sem restringir o esquema
-atual.
+reservas na agenda. O estado é armazenado como texto para permitir que o futuro
+fluxo de análise introduza novos estados sem restringir o esquema atual.

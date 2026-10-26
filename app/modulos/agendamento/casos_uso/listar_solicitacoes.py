@@ -1,8 +1,8 @@
 from app.compartilhado.dominio.erros import CredenciaisInvalidasErro
-from app.modulos.solicitacao.dominio.contratos import (
+from app.modulos.agendamento.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
-from app.modulos.solicitacao.dominio.entidades import Solicitacao
+from app.modulos.agendamento.dominio.entidades import Solicitacao
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 
 

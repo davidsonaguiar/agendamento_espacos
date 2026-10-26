@@ -43,6 +43,7 @@ app/
 ├── compartilhado/
 │   ├── dominio/                         # Entidade base e erros compartilhados
 │   └── infra/
+│       ├── banco_dados.py               # Sessão e dependência compartilhada do banco
 │       └── seguranca/
 └── modulos/
     ├── espacos/                           # Espaços, horários, pausas e vínculos
@@ -55,7 +56,7 @@ app/
     │   ├── dominio/
     │   ├── infra/
     │   └── interface/
-    ├── solicitacao/                       # Cadastro e acompanhamento de solicitações
+    ├── agendamento/                       # Cadastro e acompanhamento de solicitações
     └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
         ├── dominio/
@@ -90,7 +91,7 @@ Os casos de uso, as regras de negócio, as restrições e os fluxos estão detal
 * [Usuários](docs/casos_de_uso/usuarios.md)
 * [Espaços](docs/casos_de_uso/espacos.md)
 * [Projetos](docs/casos_de_uso/projetos.md)
-* [Solicitações](docs/casos_de_uso/solicitacao.md)
+* [Agendamento](docs/casos_de_uso/agendamento.md)
 
 A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI) e `/redoc`.
 
@@ -170,7 +171,7 @@ O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_d
 7. **Inicie o Servidor Local:**
 
    ```
-   uvicorn main:app --reload
+   python -m uvicorn main:app --reload
    
    ```
 

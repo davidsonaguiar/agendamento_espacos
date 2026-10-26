@@ -1,23 +1,34 @@
+from __future__ import annotations
+
 from datetime import date, time
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
+from app.compartilhado.dominio.entidade_base import EntidadeBase
 from app.compartilhado.dominio.erros import RegraDeNegocioErro
 
 
-class Espaco(BaseModel):
-    id: int | None = None
+class Espaco(EntidadeBase):
     nome: str
     descricao: str | None = None
     capacidade: int | None = None
     bloco: str | None = None
     disponibilidade: bool = True
+    usuarios_vinculados: list[EspacoUsuarioVinculado] = Field(default_factory=list)
+    horarios_funcionamento: list[EspacoHorarioFuncionamento] = Field(
+        default_factory=list
+    )
+    pausas_funcionamento: list[EspacoPausaFuncionamento] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class EspacoHorarioFuncionamento(BaseModel):
-    id: int | None = None
+class EspacoUsuarioVinculado(EntidadeBase):
+    id_usuario: int
+    nome_completo: str
+
+
+class EspacoHorarioFuncionamento(EntidadeBase):
     dia_semana: int = Field(
         ..., ge=0, le=6, description="0=Domingo, 1=Segunda, ..., 6=Sábado"
     )
@@ -38,8 +49,7 @@ class EspacoHorarioFuncionamento(BaseModel):
         return self
 
 
-class EspacoPausaFuncionamento(BaseModel):
-    id: int | None = None
+class EspacoPausaFuncionamento(EntidadeBase):
     data_inicio: date
     data_fim: date
     motivo: str

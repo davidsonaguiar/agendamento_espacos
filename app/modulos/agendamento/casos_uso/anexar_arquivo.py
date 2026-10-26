@@ -13,11 +13,11 @@ from app.compartilhado.dominio.erros import (
     RegraDeNegocioErro,
     TamanhoArquivoExcedidoErro,
 )
-from app.modulos.solicitacao.dominio.contratos import (
+from app.modulos.agendamento.dominio.contratos import (
     ArmazenamentoAnexoContrato,
     SolicitacaoRepositorioContrato,
 )
-from app.modulos.solicitacao.dominio.entidades import AnexoSolicitacao
+from app.modulos.agendamento.dominio.entidades import AnexoSolicitacao
 
 logger = logging.getLogger(__name__)
 LIMITE_ANEXO_BYTES = 150 * 1024

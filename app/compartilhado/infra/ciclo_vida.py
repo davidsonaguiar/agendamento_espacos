@@ -14,7 +14,7 @@ from app.modulos.projetos.infra.modelos import (
     ProjetoModelo,
     ProjetoParticipanteModelo,
 )
-from app.modulos.solicitacao.infra.modelos import (
+from app.modulos.agendamento.infra.modelos import (
     AnexoSolicitacaoModelo,
     SolicitacaoModelo,
     SolicitacaoHorarioModelo,

@@ -16,6 +16,34 @@ class AtualizarEspaco(BaseModel):
     capacidade: int | None = Field(None, description="Nova capacidade")
     bloco: str | None = Field(None, description="Novo bloco")
 
+class UsuarioVinculadoResposta(BaseModel):
+    id_usuario: int
+    nome_completo: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class HorarioFuncionamentoResposta(BaseModel):
+    id: int
+    dia_semana: int
+    hora_abertura: time
+    hora_fechamento: time
+    ativo: bool
+    id_espaco: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PausaResposta(BaseModel):
+    id: int
+    data_inicio: date
+    data_fim: date
+    motivo: str
+    id_espaco: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class EspacoResposta(BaseModel):
     id: int
     nome: str
@@ -23,8 +51,14 @@ class EspacoResposta(BaseModel):
     capacidade: int | None
     bloco: str | None
     disponibilidade: bool
+    usuarios_vinculados: list[UsuarioVinculadoResposta] = Field(default_factory=list)
+    horarios_funcionamento: list[HorarioFuncionamentoResposta] = Field(
+        default_factory=list
+    )
+    pausas_funcionamento: list[PausaResposta] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class AtualizarHorario(BaseModel):
     dia_semana: int = Field(..., ge=0, le=6, description="0=Domingo, 1=Segunda, ..., 6=Sábado")
@@ -36,13 +70,4 @@ class CriarPausaFuncionamento(BaseModel):
     data_inicio: date
     data_fim: date
     motivo: str = Field(..., min_length=3, description="Ex: Manutenção da serra, Feriado nacional")
-
-class PausaResposta(BaseModel):
-    id: int
-    data_inicio: date
-    data_fim: date
-    motivo: str
-    id_espaco: int
-
-    model_config = ConfigDict(from_attributes=True)
     

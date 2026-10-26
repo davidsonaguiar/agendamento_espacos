@@ -1,22 +1,27 @@
 from datetime import datetime
 
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.compartilhado.dominio.erros import (
     EntidadeNaoEncontradaErro,
     FalhaPersistenciaErro,
 )
-from app.modulos.solicitacao.dominio.contratos import (
+from app.modulos.agendamento.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
-from app.modulos.solicitacao.dominio.entidades import (
+from app.modulos.agendamento.dominio.entidades import (
     AnexoSolicitacao,
+    EspacoRelacionadoSolicitacao,
     HorarioSolicitacao,
+    ProjetoRelacionadoSolicitacao,
     Solicitacao,
+    SolicitanteSolicitacao,
+    StatusSolicitacao,
     UsuarioEnvolvido,
 )
-from app.modulos.solicitacao.infra.modelos import (
+from app.modulos.agendamento.infra.modelos import (
     AnexoSolicitacaoModelo,
     SolicitacaoHorarioModelo,
     SolicitacaoModelo,
@@ -32,9 +37,12 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         modelo = (
             self.db.query(SolicitacaoModelo)
             .options(
-                joinedload(SolicitacaoModelo.usuarios_envolvidos),
-                joinedload(SolicitacaoModelo.horarios),
-                joinedload(SolicitacaoModelo.anexos),
+                joinedload(SolicitacaoModelo.projeto),
+                joinedload(SolicitacaoModelo.espaco),
+                joinedload(SolicitacaoModelo.solicitante),
+                selectinload(SolicitacaoModelo.usuarios_envolvidos),
+                selectinload(SolicitacaoModelo.horarios),
+                selectinload(SolicitacaoModelo.anexos),
             )
             .filter(SolicitacaoModelo.id == id_solicitacao)
             .first()
@@ -45,9 +53,12 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         modelos = (
             self.db.query(SolicitacaoModelo)
             .options(
-                joinedload(SolicitacaoModelo.usuarios_envolvidos),
-                joinedload(SolicitacaoModelo.horarios),
-                joinedload(SolicitacaoModelo.anexos),
+                joinedload(SolicitacaoModelo.projeto),
+                joinedload(SolicitacaoModelo.espaco),
+                joinedload(SolicitacaoModelo.solicitante),
+                selectinload(SolicitacaoModelo.usuarios_envolvidos),
+                selectinload(SolicitacaoModelo.horarios),
+                selectinload(SolicitacaoModelo.anexos),
             )
             .all()
         )
@@ -57,9 +68,12 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         modelos = (
             self.db.query(SolicitacaoModelo)
             .options(
-                joinedload(SolicitacaoModelo.usuarios_envolvidos),
-                joinedload(SolicitacaoModelo.horarios),
-                joinedload(SolicitacaoModelo.anexos),
+                joinedload(SolicitacaoModelo.projeto),
+                joinedload(SolicitacaoModelo.espaco),
+                joinedload(SolicitacaoModelo.solicitante),
+                selectinload(SolicitacaoModelo.usuarios_envolvidos),
+                selectinload(SolicitacaoModelo.horarios),
+                selectinload(SolicitacaoModelo.anexos),
             )
             .filter(SolicitacaoModelo.id_solicitante == id_solicitante)
             .all()
@@ -113,6 +127,22 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             raise EntidadeNaoEncontradaErro("Solicitação", modelo.id)
         return solicitacao_salva
 
+    def cancelar(self, id_solicitacao: int) -> Solicitacao | None:
+        resultado = self.db.execute(
+            update(SolicitacaoModelo)
+            .where(
+                SolicitacaoModelo.id == id_solicitacao,
+                SolicitacaoModelo.status == StatusSolicitacao.PENDENTE.value,
+            )
+            .values(status=StatusSolicitacao.CANCELADA.value)
+        )
+        if resultado.rowcount != 1:
+            self.db.rollback()
+            return None
+
+        self.db.commit()
+        return self.buscar_por_id(id_solicitacao)
+
     def buscar_anexo(
         self, id_solicitacao: int, id_anexo: int
     ) -> AnexoSolicitacao | None:
@@ -162,6 +192,32 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             id_projeto=modelo.id_projeto,
             id_solicitante=modelo.id_solicitante,
             id_espaco=modelo.id_espaco,
+            projeto=(
+                ProjetoRelacionadoSolicitacao(
+                    id=modelo.projeto.id,
+                    descricao=modelo.projeto.descricao,
+                    finalidade=modelo.projeto.finalidade,
+                )
+                if modelo.projeto
+                else None
+            ),
+            espaco=(
+                EspacoRelacionadoSolicitacao(
+                    id=modelo.espaco.id,
+                    nome=modelo.espaco.nome,
+                    descricao=modelo.espaco.descricao,
+                    capacidade=modelo.espaco.capacidade,
+                    bloco=modelo.espaco.bloco,
+                    disponibilidade=modelo.espaco.disponibilidade,
+                )
+                if modelo.espaco
+                else None
+            ),
+            solicitante=SolicitanteSolicitacao(
+                id=modelo.solicitante.id,
+                nome_completo=modelo.solicitante.nome_completo,
+                perfil=modelo.solicitante.perfil.value,
+            ),
             usuarios_envolvidos=[
                 UsuarioEnvolvido(
                     id_usuario=usuario.id,
