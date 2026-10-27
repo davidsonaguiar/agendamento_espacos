@@ -1,26 +1,35 @@
-from app.modulos.espacos.infra.repositorios import EspacoRepositorio
-from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
-from app.modulos.solicitacao.casos_uso.anexar_arquivo import (
+from app.compartilhado.infra.banco_dados import SessaoBD
+from app.modulos.agendamento.casos_uso.cancelar_solicitacao import (
+    CancelarSolicitacaoCasoDeUso,
+)
+from app.modulos.agendamento.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
+from app.modulos.agendamento.casos_uso.criar_solicitacao import (
     CriarSolicitacaoCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.listar_solicitacoes import (
+from app.modulos.agendamento.casos_uso.listar_solicitacoes import (
     ListarSolicitacoesCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.obter_solicitacao import (
+from app.modulos.agendamento.casos_uso.obter_solicitacao import (
     ObterSolicitacaoCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.obter_url_anexo import (
+from app.modulos.agendamento.casos_uso.obter_url_anexo import (
     ObterUrlAnexoCasoDeUso,
 )
-from app.modulos.solicitacao.infra.armazenamento_supabase import (
+from app.modulos.agendamento.infra.armazenamento_supabase import (
     ArmazenamentoSupabase,
 )
-from app.modulos.solicitacao.infra.repositorios import SolicitacaoRepositorio
+from app.modulos.agendamento.infra.repositorios import SolicitacaoRepositorio
+from app.modulos.espacos.infra.repositorios import EspacoRepositorio
+from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
-from app.modulos.usuarios.interface.dependencias import SessaoBD
+
+
+def pegar_caso_de_uso_cancelar_solicitacao(
+    db: SessaoBD,
+) -> CancelarSolicitacaoCasoDeUso:
+    return CancelarSolicitacaoCasoDeUso(SolicitacaoRepositorio(db))
 
 
 def pegar_caso_de_uso_criar_solicitacao(

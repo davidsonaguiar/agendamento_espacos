@@ -1,3 +1,4 @@
+from app.compartilhado.infra.banco_dados import SessaoBD
 from app.modulos.projetos.casos_uso.atualizar_projeto import (
     AtualizarProjetoCasoDeUso,
 )
@@ -10,7 +11,6 @@ from app.modulos.projetos.casos_uso.listar_projetos import ListarProjetosCasoDeU
 from app.modulos.projetos.casos_uso.obter_projeto import ObterProjetoCasoDeUso
 from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
-from app.modulos.usuarios.interface.dependencias import SessaoBD
 
 
 def pegar_caso_de_uso_criar_projeto(db: SessaoBD) -> CriarProjetoCasoDeUso:

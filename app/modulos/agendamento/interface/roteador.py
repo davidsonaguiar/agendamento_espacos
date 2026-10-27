@@ -3,31 +3,36 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, UploadFile, status
 
 from app.compartilhado.dominio.erros import CredenciaisInvalidasErro
-from app.modulos.solicitacao.casos_uso.criar_solicitacao import (
-    CriarSolicitacaoCasoDeUso,
+from app.modulos.agendamento.casos_uso.cancelar_solicitacao import (
+    CancelarSolicitacaoCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.anexar_arquivo import (
+from app.modulos.agendamento.casos_uso.criar_solicitacao import (
+    CriarSolicitacaoCasoDeUso,
+    DadosNovaSolicitacao,
+)
+from app.modulos.agendamento.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
     LIMITE_ANEXO_BYTES,
 )
-from app.modulos.solicitacao.casos_uso.listar_solicitacoes import (
+from app.modulos.agendamento.casos_uso.listar_solicitacoes import (
     ListarSolicitacoesCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.obter_solicitacao import (
+from app.modulos.agendamento.casos_uso.obter_solicitacao import (
     ObterSolicitacaoCasoDeUso,
 )
-from app.modulos.solicitacao.casos_uso.obter_url_anexo import (
+from app.modulos.agendamento.casos_uso.obter_url_anexo import (
     ObterUrlAnexoCasoDeUso,
 )
-from app.modulos.solicitacao.dominio.entidades import Solicitacao
-from app.modulos.solicitacao.interface.dependencias import (
+from app.modulos.agendamento.dominio.entidades import HorarioSolicitacao, Solicitacao
+from app.modulos.agendamento.interface.dependencias import (
+    pegar_caso_de_uso_cancelar_solicitacao,
     pegar_caso_de_uso_criar_solicitacao,
     pegar_caso_de_uso_anexar_arquivo,
     pegar_caso_de_uso_listar_solicitacoes,
     pegar_caso_de_uso_obter_solicitacao,
     pegar_caso_de_uso_obter_url_anexo,
 )
-from app.modulos.solicitacao.interface.esquemas import (
+from app.modulos.agendamento.interface.esquemas import (
     AnexoSolicitacaoResposta,
     CriarSolicitacao,
     SolicitacaoResposta,
@@ -63,8 +68,24 @@ def criar_solicitacao(
         Depends(pegar_caso_de_uso_criar_solicitacao),
     ],
 ) -> Solicitacao:
+    dados_caso_de_uso = DadosNovaSolicitacao(
+        tipo=dados.tipo,
+        finalidade=dados.finalidade,
+        urgencia=dados.urgencia,
+        id_projeto=dados.id_projeto,
+        id_espaco=dados.id_espaco,
+        ids_usuarios_envolvidos=dados.ids_usuarios_envolvidos,
+        horarios=[
+            HorarioSolicitacao(
+                data_reserva=horario.data_reserva,
+                hora_inicio=horario.hora_inicio,
+                hora_fim=horario.hora_fim,
+            )
+            for horario in dados.horarios
+        ],
+    )
     return caso_de_uso.executar(
-        dados, _id_usuario_autenticado(usuario_logado)
+        dados_caso_de_uso, _id_usuario_autenticado(usuario_logado)
     )
 
 
@@ -145,6 +166,23 @@ def obter_solicitacao(
     caso_de_uso: Annotated[
         ObterSolicitacaoCasoDeUso,
         Depends(pegar_caso_de_uso_obter_solicitacao),
+    ],
+) -> Solicitacao:
+    return caso_de_uso.executar(id_solicitacao, usuario_logado)
+
+
+@roteador.patch(
+    "/{id_solicitacao}",
+    response_model=SolicitacaoResposta,
+    status_code=status.HTTP_200_OK,
+    summary="Cancelar uma solicitação própria ou por Administrador",
+)
+def cancelar_solicitacao(
+    id_solicitacao: int,
+    usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
+    caso_de_uso: Annotated[
+        CancelarSolicitacaoCasoDeUso,
+        Depends(pegar_caso_de_uso_cancelar_solicitacao),
     ],
 ) -> Solicitacao:
     return caso_de_uso.executar(id_solicitacao, usuario_logado)

@@ -1,19 +1,32 @@
+from dataclasses import dataclass
+
 from app.compartilhado.dominio.erros import (
     EntidadeNaoEncontradaErro,
     RegraDeNegocioErro,
 )
 from app.modulos.espacos.dominio.contratos import EspacoRepositorioContrato
 from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
-from app.modulos.solicitacao.dominio.contratos import (
+from app.modulos.agendamento.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
-from app.modulos.solicitacao.dominio.entidades import (
+from app.modulos.agendamento.dominio.entidades import (
     HorarioSolicitacao,
-    NovaSolicitacao,
     Solicitacao,
+    TipoSolicitacao,
     UsuarioEnvolvido,
 )
 from app.modulos.usuarios.dominio.contratos import UsuarioRepositorioContrato
+
+
+@dataclass
+class DadosNovaSolicitacao:
+    tipo: TipoSolicitacao
+    finalidade: str
+    urgencia: bool
+    id_projeto: int | None
+    id_espaco: int
+    ids_usuarios_envolvidos: list[int]
+    horarios: list[HorarioSolicitacao]
 
 
 class CriarSolicitacaoCasoDeUso:
@@ -30,7 +43,7 @@ class CriarSolicitacaoCasoDeUso:
         self.repositorio_usuario = repositorio_usuario
 
     def executar(
-        self, dados: NovaSolicitacao, id_solicitante: int
+        self, dados: DadosNovaSolicitacao, id_solicitante: int
     ) -> Solicitacao:
         espaco = self.repositorio_espaco.buscar_por_id(dados.id_espaco)
         if not espaco:

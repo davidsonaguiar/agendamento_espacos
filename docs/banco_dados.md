@@ -231,7 +231,7 @@ erDiagram
 *   **Justificativa:** O "pedido" de uso feito pelo servidor (RF-03 e FB-01).
 *   **Atributos:**
     *   `urgencia`: Requisito RF-07, informa ao gestor prioridade de análise.
-    *   `status`: Situação do pedido (Pendente, Aprovado, Rejeitado, Replanejado).
+    *   `status`: Situação do pedido (Pendente ou Cancelada na implementação atual; estados de análise permanecem futuros).
     *   `decisao_justificativa`: O coordenador *precisa* registrar o motivo da sua decisão (RF-09).
 
 #### Tabela: `SOLICITACAO_HORARIO`
@@ -277,7 +277,7 @@ CREATE INDEX IF NOT EXISTS ix_anexo_id_solicitacao
     ON public.anexo (id_solicitacao);
 ```
 
-Confirme que `public.solicitacao.id` usa o tipo `integer` antes de executar a migração. Além das tabelas, crie o bucket privado e configure as variáveis de ambiente descritas em [casos de uso de solicitações](./casos_de_uso/solicitacao.md#configuração-do-supabase-storage).
+Confirme que `public.solicitacao.id` usa o tipo `integer` antes de executar a migração. Além das tabelas, crie o bucket privado e configure as variáveis de ambiente descritas em [casos de uso de solicitações](./casos_de_uso/agendamento.md#configuração-do-supabase-storage).
 
 ---
 

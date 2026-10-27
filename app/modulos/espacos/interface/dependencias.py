@@ -1,3 +1,4 @@
+from app.compartilhado.infra.banco_dados import SessaoBD
 from app.modulos.espacos.casos_uso.atualizar_espaco import AtualizarEspacoCasoDeUso
 from app.modulos.espacos.casos_uso.atualizar_horarios_espaco import (
     AtualizarHorariosEspacoCasoDeUso,
@@ -15,7 +16,6 @@ from app.modulos.espacos.infra.repositorios import (
     RegrasHorarioRepositorio,
 )
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
-from app.modulos.usuarios.interface.dependencias import SessaoBD
 
 
 def pegar_caso_de_uso_cadastrar_espaco(db: SessaoBD) -> CadastrarEspacoCasoDeUso:

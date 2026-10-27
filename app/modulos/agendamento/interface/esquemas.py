@@ -1,25 +1,19 @@
-from __future__ import annotations
-
-from enum import Enum
 from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
-class TipoSolicitacao(str, Enum):
-    ESPACO = "Espaço"
-    RECURSO = "Recurso"
-    SERVICO = "Serviço"
-
-
-class StatusSolicitacao(str, Enum):
-    PENDENTE = "Pendente"
+from app.modulos.agendamento.dominio.entidades import (
+    Solicitacao,
+    TipoSolicitacao,
+)
 
 
 class NovoHorarioSolicitacao(BaseModel):
     data_reserva: date
     hora_inicio: time
     hora_fim: time
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("hora_inicio", "hora_fim")
     @classmethod
@@ -30,10 +24,9 @@ class NovoHorarioSolicitacao(BaseModel):
 
     @model_validator(mode="after")
     def validar_intervalo(self) -> NovoHorarioSolicitacao:
+        agora = datetime.now()
         if self.hora_fim <= self.hora_inicio:
             raise ValueError("A hora final deve ser posterior à hora inicial.")
-
-        agora = datetime.now()
         if self.data_reserva < agora.date():
             raise ValueError("A data do horário deve ser futura.")
         if self.data_reserva == agora.date() and self.hora_inicio <= agora.time():
@@ -62,35 +55,25 @@ class NovaSolicitacao(BaseModel):
         return ids
 
 
-class UsuarioEnvolvido(BaseModel):
-    id_usuario: int
-    nome_completo: str
+class CriarSolicitacao(NovaSolicitacao):
+    pass
 
 
-class HorarioSolicitacao(NovoHorarioSolicitacao):
-    id: int | None = None
-
-
-class AnexoSolicitacao(BaseModel):
+class AnexoSolicitacaoResposta(BaseModel):
     id: int
     nome_arquivo: str
-    url_caminho: str
     tipo_arquivo: str
     data_upload: datetime
 
+    model_config = ConfigDict(from_attributes=True)
 
-class Solicitacao(BaseModel):
-    id: int | None = None
-    tipo: TipoSolicitacao
-    finalidade: str
-    urgencia: bool
-    status: str = StatusSolicitacao.PENDENTE.value
-    decisao_justificativa: str | None = None
-    id_projeto: int | None = None
-    id_solicitante: int
-    id_espaco: int
-    usuarios_envolvidos: list[UsuarioEnvolvido] = Field(default_factory=list)
-    horarios: list[HorarioSolicitacao] = Field(default_factory=list)
-    anexos: list[AnexoSolicitacao] = Field(default_factory=list)
+
+class SolicitacaoResposta(Solicitacao):
+    anexos: list[AnexoSolicitacaoResposta] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UrlAnexoResposta(BaseModel):
+    url_assinada: str
+    validade_segundos: int

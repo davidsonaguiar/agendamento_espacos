@@ -15,7 +15,7 @@ from sqlalchemy.orm import relationship
 from app.compartilhado.infra.banco_dados import Base
 from app.modulos.espacos.infra.modelos import EspacoModelo
 from app.modulos.projetos.infra.modelos import ProjetoModelo
-from app.modulos.solicitacao.dominio.entidades import TipoSolicitacao
+from app.modulos.agendamento.dominio.entidades import TipoSolicitacao
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
 solicitacao_usuario_tabela = Table(

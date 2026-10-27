@@ -20,7 +20,23 @@ class EspacoModelo(Base):
     bloco = Column(String(50), nullable=True)
     disponibilidade = Column(Boolean, default=True, nullable=False)
 
-    usuarios_vinculados = relationship("UsuarioModelo", secondary=espaco_usuario_tabela, backref="espacos_vinculados")
+    usuarios_vinculados = relationship(
+        "UsuarioModelo",
+        secondary=espaco_usuario_tabela,
+        backref="espacos_vinculados",
+    )
+    horarios_funcionamento = relationship(
+        "EspacoHorarioFuncionamentoModelo",
+        back_populates="espaco",
+        cascade="all, delete-orphan",
+        order_by="EspacoHorarioFuncionamentoModelo.dia_semana",
+    )
+    pausas_funcionamento = relationship(
+        "EspacoPausaFuncionamentoModelo",
+        back_populates="espaco",
+        cascade="all, delete-orphan",
+        order_by="EspacoPausaFuncionamentoModelo.data_inicio",
+    )
 
 class EspacoHorarioFuncionamentoModelo(Base):
     __tablename__ = "espaco_horario_funcionamento"
@@ -31,6 +47,7 @@ class EspacoHorarioFuncionamentoModelo(Base):
     hora_fechamento = Column(Time, nullable=False)
     ativo = Column(Boolean, default=True, nullable=False) # Nova coluna!
     id_espaco = Column(Integer, ForeignKey("espaco.id", ondelete="CASCADE"), nullable=False)
+    espaco = relationship("EspacoModelo", back_populates="horarios_funcionamento")
 
 class EspacoPausaFuncionamentoModelo(Base):
     __tablename__ = "espaco_pausa_funcionamento"
@@ -40,3 +57,4 @@ class EspacoPausaFuncionamentoModelo(Base):
     data_fim = Column(Date, nullable=False)
     motivo = Column(String(200), nullable=False)
     id_espaco = Column(Integer, ForeignKey("espaco.id", ondelete="CASCADE"), nullable=False)
+    espaco = relationship("EspacoModelo", back_populates="pausas_funcionamento")
