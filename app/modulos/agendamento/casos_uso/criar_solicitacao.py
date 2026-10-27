@@ -4,8 +4,6 @@ from app.compartilhado.dominio.erros import (
     EntidadeNaoEncontradaErro,
     RegraDeNegocioErro,
 )
-from app.modulos.espacos.dominio.contratos import EspacoRepositorioContrato
-from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
 from app.modulos.agendamento.dominio.contratos import (
     SolicitacaoRepositorioContrato,
 )
@@ -15,6 +13,8 @@ from app.modulos.agendamento.dominio.entidades import (
     TipoSolicitacao,
     UsuarioEnvolvido,
 )
+from app.modulos.espacos.dominio.contratos import EspacoRepositorioContrato
+from app.modulos.projetos.dominio.contratos import ProjetoRepositorioContrato
 from app.modulos.usuarios.dominio.contratos import UsuarioRepositorioContrato
 
 

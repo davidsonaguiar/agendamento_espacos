@@ -8,6 +8,7 @@ from app.modulos.espacos.infra.modelos import (
     EspacoHorarioFuncionamentoModelo,
     EspacoModelo,
     EspacoPausaFuncionamentoModelo,
+    RecursoModelo,
     espaco_usuario_tabela,
 )
 from app.modulos.projetos.infra.modelos import (
@@ -33,6 +34,7 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
             EspacoModelo.__table__,
             EspacoHorarioFuncionamentoModelo.__table__,
             EspacoPausaFuncionamentoModelo.__table__,
+            RecursoModelo.__table__,
             ProjetoModelo.__table__,
             ProjetoParticipanteModelo.__table__,
             SolicitacaoModelo.__table__,
