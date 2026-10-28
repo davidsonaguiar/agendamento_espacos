@@ -2,7 +2,7 @@
 
 Esta documentação descreve o **modelo relacional proposto** para o Sistema de Gestão e Agendamento do COLAB (IFAL), incluindo espaços, recursos, solicitações, reservas e monitoria.
 
-> **Estado da implementação:** a aplicação implementa as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos, horários e anexos). Recursos, reservas e turnos de monitoria ainda não possuem implementação.
+> **Estado da implementação:** a aplicação implementa as tabelas de usuários, espaços (incluindo horários, pausas, vínculos e recursos), projetos (incluindo participantes) e solicitações (incluindo usuários envolvidos, horários e anexos). Reservas e turnos de monitoria permanecem sem implementação.
 
 ---
 
@@ -76,6 +76,7 @@ erDiagram
         string tipo
         boolean autorizacao_necessaria
         boolean disponibilidade
+        boolean reserva_independente
         int id_espaco FK
     }
 
@@ -220,8 +221,12 @@ erDiagram
 #### Tabela: `RECURSO`
 *   **Justificativa:** Ferramentas, equipamentos e máquinas físicas inseridas nos espaços.
 *   **Atributos:** 
+    *   `nome`, `tipo`: Identificação e classificação do recurso.
     *   `autorizacao_necessaria`: Sinaliza equipamentos de risco (ex: serra circular) que barram aprovações automáticas (RN-13).
+    *   `disponibilidade`: Indica se o recurso está disponível para uso.
+    *   `reserva_independente`: Indica se o recurso pode ser reservado sem reservar o espaço (padrão `false`).
     *   `id_espaco`: Onde fisicamente aquele recurso se encontra.
+*   **Implementação atual:** tabela `recurso`, com nome e tipo de até 100 caracteres, flags booleanas e chave estrangeira obrigatória para `espaco.id`. A exclusão da API é lógica: define `disponibilidade=false`.
 
 ---
 

@@ -1,9 +1,9 @@
 from app.compartilhado.infra.banco_dados import SessaoBD
-from app.modulos.agendamento.casos_uso.cancelar_solicitacao import (
-    CancelarSolicitacaoCasoDeUso,
-)
 from app.modulos.agendamento.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
+)
+from app.modulos.agendamento.casos_uso.cancelar_solicitacao import (
+    CancelarSolicitacaoCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.criar_solicitacao import (
     CriarSolicitacaoCasoDeUso,
