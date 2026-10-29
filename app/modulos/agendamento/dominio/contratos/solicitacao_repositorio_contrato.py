@@ -1,7 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
-from app.modulos.agendamento.dominio.entidades import AnexoSolicitacao, Solicitacao
+from app.modulos.agendamento.dominio.entidades import (
+    AnexoSolicitacao,
+    HorarioSolicitacao,
+    Solicitacao,
+    StatusSolicitacao,
+)
 
 
 class SolicitacaoRepositorioContrato(ABC):
@@ -19,6 +24,53 @@ class SolicitacaoRepositorioContrato(ABC):
 
     @abstractmethod
     def salvar(self, solicitacao: Solicitacao) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def solicitar_complementacao(
+        self, id_solicitacao: int, id_usuario: int, mensagem: str
+    ) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def responder_complementacao(
+        self, id_solicitacao: int, id_usuario: int, mensagem: str
+    ) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def propor_replanejamento(
+        self,
+        id_solicitacao: int,
+        id_usuario: int,
+        mensagem: str,
+        horarios: list[HorarioSolicitacao],
+        ids_recursos: list[int],
+    ) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def responder_proposta(
+        self,
+        id_solicitacao: int,
+        id_interacao: int,
+        id_usuario: int,
+        aceita: bool,
+        mensagem: str,
+    ) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def decidir(
+        self,
+        id_solicitacao: int,
+        status: StatusSolicitacao,
+        justificativa: str,
+    ) -> Solicitacao:
+        pass
+
+    @abstractmethod
+    def rollback(self) -> None:
         pass
 
     @abstractmethod

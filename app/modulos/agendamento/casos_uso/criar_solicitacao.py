@@ -25,6 +25,7 @@ class DadosNovaSolicitacao:
     urgencia: bool
     id_projeto: int | None
     id_espaco: int
+    ids_recursos: list[int]
     ids_usuarios_envolvidos: list[int]
     horarios: list[HorarioSolicitacao]
 
@@ -48,6 +49,16 @@ class CriarSolicitacaoCasoDeUso:
         espaco = self.repositorio_espaco.buscar_por_id(dados.id_espaco)
         if not espaco:
             raise EntidadeNaoEncontradaErro("Espaço", dados.id_espaco)
+
+        recursos_por_id = {recurso.id: recurso for recurso in espaco.recursos}
+        for id_recurso in dados.ids_recursos:
+            recurso = recursos_por_id.get(id_recurso)
+            if recurso is None:
+                raise EntidadeNaoEncontradaErro("Recurso do espaço", id_recurso)
+            if not recurso.disponibilidade:
+                raise RegraDeNegocioErro(
+                    f"O recurso com ID {id_recurso} está indisponível."
+                )
 
         if dados.id_projeto is not None:
             projeto = self.repositorio_projeto.buscar_por_id(dados.id_projeto)
@@ -85,6 +96,7 @@ class CriarSolicitacaoCasoDeUso:
             id_projeto=dados.id_projeto,
             id_solicitante=id_solicitante,
             id_espaco=dados.id_espaco,
+            ids_recursos=dados.ids_recursos,
             usuarios_envolvidos=usuarios_envolvidos,
             horarios=[
                 HorarioSolicitacao(

@@ -41,10 +41,10 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         return self._converter(modelo)
 
     def listar(
-        self, 
-        apenas_ativos: bool = False, 
-        id_usuario_vinculado: int | None = None, 
-        skip: int = 0, 
+        self,
+        apenas_ativos: bool = False,
+        id_usuario_vinculado: int | None = None,
+        skip: int = 0,
         limit: int = 100
     ) -> list[Espaco]:
         consulta = self._consulta_com_relacionamentos()
@@ -96,7 +96,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
             modelo.capacidade = espaco.capacidade
             modelo.bloco = espaco.bloco
             modelo.disponibilidade = espaco.disponibilidade
-            
+
             self.db.commit()
             self.db.refresh(modelo)
             return self._converter(modelo)

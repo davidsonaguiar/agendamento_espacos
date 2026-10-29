@@ -8,6 +8,8 @@ from app.modulos.espacos.infra.modelos import EspacoModelo
 from app.modulos.projetos.infra.modelos import ProjetoModelo
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
+from .solicitacao_interacao_modelo import SolicitacaoInteracaoModelo
+from .solicitacao_recurso_tabela import solicitacao_recurso_tabela
 from .solicitacao_usuario_tabela import solicitacao_usuario_tabela
 
 
@@ -38,6 +40,11 @@ class SolicitacaoModelo(Base):
         UsuarioModelo,
         secondary=solicitacao_usuario_tabela,
     )
+    recursos = relationship(
+        "RecursoModelo",
+        secondary=solicitacao_recurso_tabela,
+        order_by="RecursoModelo.id",
+    )
     horarios = relationship(
         "SolicitacaoHorarioModelo",
         back_populates="solicitacao",
@@ -49,4 +56,13 @@ class SolicitacaoModelo(Base):
         back_populates="solicitacao",
         cascade="all, delete-orphan",
         order_by="AnexoSolicitacaoModelo.data_upload",
+    )
+    interacoes = relationship(
+        SolicitacaoInteracaoModelo,
+        back_populates="solicitacao",
+        cascade="all, delete-orphan",
+        order_by=(
+            "SolicitacaoInteracaoModelo.data_criacao, "
+            "SolicitacaoInteracaoModelo.id"
+        ),
     )

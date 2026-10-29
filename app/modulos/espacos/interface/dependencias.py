@@ -13,6 +13,9 @@ from app.modulos.espacos.casos_uso.gerenciar_recursos_espaco import (
 )
 from app.modulos.espacos.casos_uso.gerenciar_vinculos import GerenciarVinculosCasoDeUso
 from app.modulos.espacos.casos_uso.listar_espacos import ListarEspacosCasoDeUso
+from app.modulos.espacos.casos_uso.listar_horarios_espaco import (
+    ListarHorariosEspacoCasoDeUso,
+)
 from app.modulos.espacos.casos_uso.reativar_espaco import ReativarEspacoCasoDeUso
 from app.modulos.espacos.infra.repositorios import (
     EspacoRepositorio,
@@ -48,6 +51,16 @@ def pegar_caso_de_uso_atualizar_horarios_espaco(db: SessaoBD) -> AtualizarHorari
     repo_espaco = EspacoRepositorio(db)
     repo_horario = RegrasHorarioRepositorio(db)
     return AtualizarHorariosEspacoCasoDeUso(repo_espaco, repo_horario)
+
+
+def pegar_caso_de_uso_listar_horarios_espaco(
+    db: SessaoBD,
+) -> ListarHorariosEspacoCasoDeUso:
+    return ListarHorariosEspacoCasoDeUso(
+        EspacoRepositorio(db),
+        RegrasHorarioRepositorio(db),
+    )
+
 
 def pegar_caso_de_uso_gerenciar_pausas(db: SessaoBD) -> GerenciarPausasEspacoCasoDeUso:
     repo_espaco = EspacoRepositorio(db)

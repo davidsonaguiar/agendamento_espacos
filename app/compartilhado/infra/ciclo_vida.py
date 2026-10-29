@@ -4,6 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.compartilhado.infra.banco_dados import Base, motor
+from app.modulos.agendamento.infra.modelos import (
+    ReservaAgendaModelo,
+    SolicitacaoInteracaoModelo,
+    agenda_reserva_recurso_tabela,
+    solicitacao_recurso_tabela,
+)
 from app.modulos.espacos.infra.modelos import (
     EspacoHorarioFuncionamentoModelo,
     EspacoModelo,
@@ -40,7 +46,11 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
             SolicitacaoModelo.__table__,
             SolicitacaoHorarioModelo.__table__,
             AnexoSolicitacaoModelo.__table__,
+            ReservaAgendaModelo.__table__,
+            SolicitacaoInteracaoModelo.__table__,
             solicitacao_usuario_tabela,
+            solicitacao_recurso_tabela,
+            agenda_reserva_recurso_tabela,
         ],
     )
     yield
