@@ -1,8 +1,17 @@
 # Casos de uso — Espaços
 
-O módulo `app/modulos/espacos/` administra espaços físicos, dados básicos,
+O módulo `app/modulos/espacos/` administra espaços físicos, seus recursos,
 horários semanais, pausas excepcionais e vínculos de usuários. O roteador usa
 o prefixo `/espacos`.
+
+## Recursos
+
+Um espaço pode possuir vários recursos, como impressoras 3D, computadores ou
+CNC. `Recurso` registra nome, tipo, necessidade de autorização, disponibilidade,
+se permite reserva independente (`reserva_independente`, padrão `false`) e o
+ID do espaço associado. O cadastro e a manutenção estão disponíveis pelas rotas
+abaixo; a reserva dos recursos continua a ser tratada futuramente no fluxo de
+solicitações/reservas.
 
 ## Endpoints e autorização
 
@@ -20,11 +29,36 @@ o prefixo `/espacos`.
 | Adicionar pausa | `POST /espacos/{id_espaco}/pausas` | Administrador ou Coordenador | 201, `PausaResposta` |
 | Listar pausas | `GET /espacos/{id_espaco}/pausas` | Autenticado | 200, lista de `PausaResposta` |
 | Remover pausa | `DELETE /espacos/{id_espaco}/pausas/{id_pausa}` | Administrador ou Coordenador | 200 |
+| Cadastrar recurso | `POST /espacos/{id_espaco}/recursos` | Administrador ou Coordenador | 201, `RecursoResposta` |
+| Listar recursos | `GET /espacos/{id_espaco}/recursos` | Autenticado | 200, lista paginada de `RecursoResposta` |
+| Atualizar recurso | `PUT /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador | 200, `RecursoResposta` |
+| Indisponibilizar recurso | `DELETE /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador | 200, `RecursoResposta` |
 
 Os endpoints protegidos carregam o usuário autenticado e verificam perfis na
 camada HTTP. Respostas de horário, vínculo e remoção de pausa não declaram
 `response_model`; seus corpos vêm diretamente dos valores retornados pelo
 caso de uso.
+
+## Gerenciar recursos
+
+**Caso de uso:** `GerenciarRecursosEspacoCasoDeUso`.
+
+- **Cadastrar:** exige que o espaço exista e associa o novo recurso a ele.
+- **Listar:** exige espaço existente e aceita `skip` (mínimo 0, padrão 0) e
+  `limit` (1–100, padrão 100). Administradores, Coordenadores e Monitores
+  podem ver todos os recursos, inclusive os indisponíveis. Os demais perfis
+  autenticados veem somente os recursos disponíveis. Os resultados vêm em
+  ordem de ID.
+- **Atualizar:** exige recurso pertencente ao espaço informado; atualiza nome,
+  tipo, necessidade de autorização e permissão de reserva independente.
+- **Indisponibilizar:** `DELETE` é uma exclusão lógica, que define
+  `disponibilidade=false` sem apagar o registro.
+
+Nome e tipo aceitam entre 1 e 100 caracteres. Atualizações precisam informar ao
+menos um campo; campos nulos são rejeitados. Espaço ou recurso inexistente,
+assim como recurso associado a outro espaço, resulta em 404. Administradores
+ou Coordenadores podem cadastrar, atualizar e indisponibilizar recursos; a
+listagem exige autenticação.
 
 ## Cadastro de espaço
 

@@ -1,80 +1,159 @@
-# Casos de uso — Agendamentos
+# Casos de uso — Solicitações e agendamentos
 
-O módulo `app/modulos/agendamento/` controla a disponibilidade e as reservas
-oficiais de espaços. O roteador usa o prefixo `/agendamentos`. Horários
-semanais e pausas continuam sendo cadastrados e mantidos pelo módulo
-`espacos`; o agendamento consulta essas regras para validar períodos.
+O módulo `app/modulos/agendamento/` recebe solicitações de uso dos espaços e
+mantém a agenda oficial. Horários semanais e pausas excepcionais são
+cadastrados pelo módulo `espacos`; a disponibilidade consulta essas regras
+junto às reservas confirmadas.
 
-## Endpoints
+## Solicitações
 
-| Operação | Endpoint | Acesso | Sucesso |
-|---|---|---|---|
-| Consultar disponibilidade | `GET /agendamentos/disponibilidade` | Usuário autenticado | 200, disponibilidade e motivo |
-| Listar reservas confirmadas | `GET /agendamentos/` | Usuário autenticado | 200, lista de reservas |
+### Criar solicitação
 
-Não há endpoint público para criar reservas diretamente. Uma reserva oficial é
-criada pelo caso de uso de decisão de solicitações quando uma solicitação é
-aprovada.
+- Somente um usuário autenticado com perfil `Servidor` pode cadastrar.
+- O solicitante é obtido do token; não pode ser informado no corpo.
+- Cada pedido referencia um espaço existente. O projeto é opcional; quando
+  informado, precisa existir.
+- O tipo deve ser `Espaço`, `Recurso` ou `Serviço`.
+- A finalidade é obrigatória. A urgência é registrada como indicação e não
+  garante atendimento prioritário.
+- Usuários envolvidos devem existir e estar ativos; IDs duplicados e o próprio
+  solicitante não são aceitos na lista.
+- É obrigatório informar ao menos um horário. Cada horário contém
+  `data_reserva`, `hora_inicio` e `hora_fim`; a data e o início devem ser
+  futuros, e a hora final deve ser posterior à inicial.
+- A nova solicitação inicia com estado `Pendente`.
 
-## Consultar disponibilidade
+### Analisar e decidir
 
-Exemplo:
+- Somente `Administrador` e `Coordenador` podem decidir solicitações
+  pendentes.
+- A decisão deve ser `Aprovado` ou `Rejeitado` e incluir justificativa com ao
+  menos três caracteres.
+- Ao aprovar, a aplicação revalida os horários contra o funcionamento do
+  espaço, pausas, reservas confirmadas e sobreposição entre horários da
+  própria solicitação.
+- A aprovação cria uma reserva confirmada para cada horário e salva as
+  reservas, o status e a justificativa na mesma transação.
+- Se qualquer horário estiver inválido ou conflitar, a solicitação permanece
+  pendente e nenhuma reserva parcial é mantida.
+- A rejeição registra status e justificativa sem criar reservas.
+
+### Listar, consultar e cancelar
+
+- `Administrador` e `Coordenador` podem consultar todas as solicitações.
+- Os demais perfis autenticados consultam somente as solicitações que abriram.
+- O criador ou um `Administrador` pode cancelar uma solicitação pendente.
+  Coordenadores e outros usuários não podem cancelar pedidos de terceiros.
+- O cancelamento preserva a solicitação e seus dados, alterando o estado para
+  `Cancelada`. Solicitações que não estejam pendentes não podem ser canceladas.
+
+### Anexos
+
+- Somente o `Servidor` que abriu a solicitação pode enviar anexos.
+- Cada chamada aceita um arquivo PDF ou DOCX de até 150 KiB (153.600 bytes).
+- A API valida a extensão e a estrutura do arquivo. O objeto é enviado ao
+  bucket privado do Supabase Storage; apenas os metadados e o caminho interno
+  são armazenados no banco.
+- O solicitante, Administrador ou Coordenador pode solicitar um link de
+  download temporário, válido por 10 minutos. A API não expõe URL pública
+  permanente.
+
+## Agenda
+
+### Consultar disponibilidade
+
+`GET /agendamentos/disponibilidade` verifica se um período específico pode ser
+reservado. Exemplo:
 
 ```text
 /agendamentos/disponibilidade?id_espaco=2&data_hora_inicio=2026-11-02T14:00:00&data_hora_fim=2026-11-02T16:00:00
 ```
 
-Os parâmetros de período são datetimes locais sem fuso horário. O período deve
-ser futuro, ter fim posterior ao início, estar dentro do horário semanal ativo
-do espaço e não cruzar uma pausa ou reserva confirmada.
+Os parâmetros são datetimes locais sem fuso horário. O início deve ser futuro e
+o fim posterior ao início. A verificação considera:
 
-Resposta disponível:
+1. se o espaço existe e está ativo;
+2. o horário regular de funcionamento e eventuais pausas;
+3. conflitos com reservas confirmadas na tabela `agenda_reserva`.
+
+Um intervalo válido, mas indisponível, retorna `200` com `disponivel: false` e
+o motivo. Espaço inexistente retorna `404`; parâmetros inválidos retornam
+`422`.
+
+### Listar reservas
+
+`GET /agendamentos/` exige `data_hora_inicio` e `data_hora_fim`, e aceita
+`id_espaco` e `id_recurso` como filtros opcionais. Retorna reservas
+confirmadas que interceptam o intervalo, incluindo os IDs dos recursos
+vinculados, ordenadas pelo horário de início.
+
+### Consultar horários livres
+
+`GET /agendamentos/horarios-disponiveis` recebe `id_espaco`, `data_inicio` e
+`data_fim` (datas inclusivas) e aceita `ids_recursos` repetidos na query. Gera
+períodos de uma hora, avançando em passos de uma hora a partir da abertura
+cadastrada. O retorno exclui fechamentos, pausas, reservas do espaço e
+conflitos de qualquer recurso informado. A consulta é limitada a 31 dias.
+
+### Complementação e proposta de replanejamento
+
+- `POST /solicitacoes/{id_solicitacao}/complementacao`: Administrador ou
+  Coordenador registra um pedido de complementação; a solicitação aguarda a
+  resposta do solicitante.
+- `POST /solicitacoes/{id_solicitacao}/complementacao/resposta`: o solicitante
+  responde e a solicitação retorna a `Pendente`.
+- `POST /solicitacoes/{id_solicitacao}/propostas-replanejamento`: o gestor
+  envia horários de uma hora e recursos alternativos. Os períodos são
+  validados contra funcionamento, pausas e conflitos antes da proposta ser
+  registrada.
+- `POST /solicitacoes/{id_solicitacao}/propostas-replanejamento/{id_interacao}/resposta`:
+  o solicitante pode recusar, retornando a solicitação a `Pendente`, ou aceitar.
+  A aceitação atualiza horários/recursos, aprova a solicitação e cria as
+  reservas na mesma transação.
+- Cada ação acrescenta uma interação ao histórico da solicitação.
+
+Não há endpoint para criar reservas diretamente. Elas são criadas somente
+quando uma solicitação é aprovada.
+
+## Rotas
+
+| Método | Rota | Acesso |
+|---|---|---|
+| `POST` | `/solicitacoes/` | Servidor |
+| `GET` | `/solicitacoes/` | Usuário autenticado; resultados conforme perfil |
+| `PATCH` | `/solicitacoes/{id_solicitacao}/decisao` | Administrador ou Coordenador |
+| `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador |
+| `PATCH` | `/solicitacoes/{id_solicitacao}` | Criador ou Administrador |
+| `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Servidor solicitante |
+| `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador |
+| `GET` | `/agendamentos/disponibilidade` | Usuário autenticado |
+| `GET` | `/agendamentos/` | Usuário autenticado |
+| `GET` | `/agendamentos/horarios-disponiveis` | Usuário autenticado |
+| `POST` | `/solicitacoes/{id_solicitacao}/complementacao` | Administrador ou Coordenador |
+| `POST` | `/solicitacoes/{id_solicitacao}/complementacao/resposta` | Servidor solicitante |
+| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento` | Administrador ou Coordenador |
+| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento/{id_interacao}/resposta` | Servidor solicitante |
+
+Exemplo de corpo para decidir uma solicitação:
 
 ```json
 {
-  "id_espaco": 2,
-  "data_hora_inicio": "2026-11-02T14:00:00",
-  "data_hora_fim": "2026-11-02T16:00:00",
-  "disponivel": true,
-  "motivo": null
+  "status": "Aprovado",
+  "justificativa": "Horários verificados e aprovados."
 }
 ```
 
-Se o espaço estiver desativado, fechado, fora do horário semanal ou ocupado,
-a resposta continua sendo `200`, com `disponivel: false` e o motivo. Um espaço
-inexistente retorna `404`; intervalo inválido retorna `422`.
+## Supabase Storage e migração
 
-## Listar reservas
+Crie um bucket privado chamado `anexos-solicitacoes` (ou configure
+`SUPABASE_BUCKET_ANEXOS`) e permita PDF e DOCX, com limite de 153.600 bytes.
+Configure `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` e
+`SUPABASE_BUCKET_ANEXOS` apenas no ambiente seguro do backend. A chave
+`service_role` não deve ser exposta no frontend.
 
-`GET /agendamentos/` exige `data_hora_inicio` e `data_hora_fim`; aceita
-`id_espaco` como filtro opcional. Retorna reservas confirmadas que interceptam
-o período, em ordem crescente de início. Os parâmetros de consulta usam
-datetimes locais sem fuso horário e o fim deve ser posterior ao início.
+A tabela `agenda_reserva` guarda início, fim, situação, solicitação e espaço.
+Para criar as tabelas necessárias em um Supabase já existente, siga as
+instruções de [migração no banco de dados](../banco_dados.md). `create_all`
+cria tabelas ausentes, mas não altera as já existentes.
 
-## Aprovar solicitações e criar reservas
-
-`PATCH /solicitacoes/{id_solicitacao}/decisao` continua sendo a operação de
-decisão, mas delega ao caso de uso `ReservarHorariosAprovadosCasoDeUso` as
-regras de agenda. Ao aprovar:
-
-1. verifica que a solicitação está pendente e contém horários;
-2. bloqueia a linha do espaço durante a checagem para serializar aprovações
-   concorrentes para o mesmo espaço;
-3. revalida datas futuras, funcionamento semanal, pausas, conflitos com
-   reservas confirmadas e sobreposição entre horários da solicitação;
-4. adiciona uma reserva `Confirmada` para cada horário solicitado;
-5. grava reservas e decisão na mesma transação do banco.
-
-Se qualquer verificação falhar, a transação é revertida, a solicitação continua
-pendente e não fica nenhuma reserva parcial. Rejeitar registra a decisão e não
-gera reservas.
-
-## Persistência
-
-A tabela `agenda_reserva` implementa `AGENDA_RESERVA`, com início, fim,
-situação, solicitação e espaço. A inicialização importa o modelo pelo ciclo de
-vida da aplicação. Em bancos Supabase já existentes, aplique também o SQL de
-migração de `agenda_reserva` descrito em [banco_dados.md](../banco_dados.md);
-`create_all` não altera tabelas existentes.
-
-`AGENDA_RESERVA_RECURSO` permanece para a etapa futura de recursos.
+Turnos de monitoria permanecem para etapa futura.

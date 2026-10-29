@@ -1,9 +1,4 @@
-from typing import Annotated
-
-from fastapi import Depends
-from sqlalchemy.orm import Session
-
-from app.compartilhado.infra.banco_dados import pegar_banco_dados
+from app.compartilhado.infra.banco_dados import SessaoBD
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioCasoDeUso
@@ -11,7 +6,6 @@ from app.modulos.usuarios.casos_uso.cadastrar_usuario import CadastrarUsuarioCas
 from app.modulos.usuarios.casos_uso.listar_usuarios import ListarUsuariosCasoDeUso
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
 
-SessaoBD = Annotated[Session, Depends(pegar_banco_dados)]
 
 def pegar_caso_de_uso_cadastro(db: SessaoBD) -> CadastrarUsuarioCasoDeUso:
     repositorio = UsuarioRepositorio(db)

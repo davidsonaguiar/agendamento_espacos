@@ -25,7 +25,33 @@ class ReservarHorariosAprovadosCasoDeUso:
         id_solicitacao: int,
         id_espaco: int,
         periodos: list[PeriodoReserva],
+        ids_recursos: list[int] | None = None,
     ) -> None:
+        self.validar(
+            id_espaco=id_espaco,
+            periodos=periodos,
+            ids_recursos=ids_recursos,
+        )
+        ids_recursos = ids_recursos or []
+
+        periodos_ordenados = sorted(
+            periodos,
+            key=lambda periodo: periodo.data_hora_inicio,
+        )
+        self.repositorio.reservar(
+            id_solicitacao,
+            id_espaco,
+            periodos_ordenados,
+            ids_recursos,
+        )
+
+    def validar(
+        self,
+        id_espaco: int,
+        periodos: list[PeriodoReserva],
+        ids_recursos: list[int] | None = None,
+    ) -> None:
+        ids_recursos = ids_recursos or []
         if not periodos:
             raise RegraDeNegocioErro(
                 "A solicitação não possui horários para reservar."
@@ -60,11 +86,10 @@ class ReservarHorariosAprovadosCasoDeUso:
                 id_espaco,
                 periodo.data_hora_inicio,
                 periodo.data_hora_fim,
+                ids_recursos=ids_recursos,
                 bloquear_espaco=True,
             ):
                 raise ConflitoDeDadosErro(
-                    "Não é possível aprovar a solicitação: o espaço já possui "
-                    "uma reserva confirmada que conflita com o período."
+                    "O espaço ou um dos recursos já possui uma reserva "
+                    "confirmada que conflita com o período."
                 )
-
-        self.repositorio.reservar(id_solicitacao, id_espaco, periodos_ordenados)

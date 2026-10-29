@@ -41,10 +41,6 @@ class GerenciarPausasEspacoCasoDeUso:
 
     def remover(self, id_espaco: int, id_pausa: int) -> dict:
         self._validar_espaco(id_espaco)
-        
-        try:
-            self.repo_horario.remover_pausa(id_pausa)
-            return {"mensagem": "Pausa removida com sucesso."}
-        except ValueError as e:
-            raise EntidadeNaoEncontradaErro(entidade="Pausa de Funcionamento", id=id_espaco, detalhe=str(e))
+        self.repo_horario.remover_pausa(id_pausa)
+        return {"mensagem": "Pausa removida com sucesso."}
         

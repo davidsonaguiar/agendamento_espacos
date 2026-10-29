@@ -9,7 +9,7 @@ from app.modulos.agendamento.interface.roteador import (
 )
 from app.modulos.espacos.interface.roteador import roteador as roteador_espacos
 from app.modulos.projetos.interface.roteador import roteador as roteador_projetos
-from app.modulos.solicitacao.interface.roteador import (
+from app.modulos.agendamento.interface.roteadores.roteador import (
     roteador as roteador_solicitacoes,
 )
 from app.modulos.usuarios.interface.roteador import roteador as roteador_usuarios

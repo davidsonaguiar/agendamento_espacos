@@ -6,10 +6,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import ValidationError
 
 from app.compartilhado.dominio.erros import AcessoNegadoErro, CredenciaisInvalidasErro
+from app.compartilhado.infra.banco_dados import SessaoBD
 from app.compartilhado.infra.config import config
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
-from app.modulos.usuarios.interface.dependencias import SessaoBD
 
 oauth2_esquema = HTTPBearer()
 

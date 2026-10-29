@@ -1,3 +1,4 @@
+from app.compartilhado.infra.banco_dados import SessaoBD
 from app.modulos.espacos.casos_uso.atualizar_espaco import AtualizarEspacoCasoDeUso
 from app.modulos.espacos.casos_uso.atualizar_horarios_espaco import (
     AtualizarHorariosEspacoCasoDeUso,
@@ -7,6 +8,9 @@ from app.modulos.espacos.casos_uso.desativar_espaco import DesativarEspacoCasoDe
 from app.modulos.espacos.casos_uso.gerenciar_pausa_espaco import (
     GerenciarPausasEspacoCasoDeUso,
 )
+from app.modulos.espacos.casos_uso.gerenciar_recursos_espaco import (
+    GerenciarRecursosEspacoCasoDeUso,
+)
 from app.modulos.espacos.casos_uso.gerenciar_vinculos import GerenciarVinculosCasoDeUso
 from app.modulos.espacos.casos_uso.listar_espacos import ListarEspacosCasoDeUso
 from app.modulos.espacos.casos_uso.listar_horarios_espaco import (
@@ -15,10 +19,10 @@ from app.modulos.espacos.casos_uso.listar_horarios_espaco import (
 from app.modulos.espacos.casos_uso.reativar_espaco import ReativarEspacoCasoDeUso
 from app.modulos.espacos.infra.repositorios import (
     EspacoRepositorio,
+    RecursoRepositorio,
     RegrasHorarioRepositorio,
 )
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
-from app.modulos.usuarios.interface.dependencias import SessaoBD
 
 
 def pegar_caso_de_uso_cadastrar_espaco(db: SessaoBD) -> CadastrarEspacoCasoDeUso:
@@ -62,3 +66,12 @@ def pegar_caso_de_uso_gerenciar_pausas(db: SessaoBD) -> GerenciarPausasEspacoCas
     repo_espaco = EspacoRepositorio(db)
     repo_horario = RegrasHorarioRepositorio(db)
     return GerenciarPausasEspacoCasoDeUso(repo_espaco, repo_horario)
+
+
+def pegar_caso_de_uso_gerenciar_recursos(
+    db: SessaoBD,
+) -> GerenciarRecursosEspacoCasoDeUso:
+    return GerenciarRecursosEspacoCasoDeUso(
+        EspacoRepositorio(db),
+        RecursoRepositorio(db),
+    )

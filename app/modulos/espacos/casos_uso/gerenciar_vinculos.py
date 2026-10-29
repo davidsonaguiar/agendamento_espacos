@@ -20,11 +20,11 @@ class GerenciarVinculosCasoDeUso:
     def _validar_entidades(self, id_espaco: int, id_usuario: int):
         espaco = self.repo_espaco.buscar_por_id(id_espaco)
         if not espaco:
-            raise EntidadeNaoEncontradaErro("Espaço não encontrado.")
+            raise EntidadeNaoEncontradaErro("Espaço", id_espaco)
 
         usuario = self.repo_usuario.buscar_por_id(id_usuario)
         if not usuario:
-            raise EntidadeNaoEncontradaErro("Usuário não encontrado.")
+            raise EntidadeNaoEncontradaErro("Usuário", id_usuario)
 
         if usuario.perfil not in [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR, PerfilUsuario.MONITOR]:
             raise AcessoNegadoErro("Apenas usuários com perfil de Coordenador ou Monitor podem ser vinculados a espaços.")
@@ -46,7 +46,7 @@ class GerenciarVinculosCasoDeUso:
         espaco, usuario = self._validar_entidades(id_espaco, id_usuario)
 
         if not self.repo_espaco.verificar_vinculo(id_espaco, id_usuario):
-            raise EntidadeNaoEncontradaErro("O usuário não possui vínculo com este espaço.")
+            raise EntidadeNaoEncontradaErro("Vínculo", id_usuario)
 
         self.repo_espaco.remover_vinculo(id_espaco, id_usuario)
         return {"mensagem": f"Vínculo do {usuario.perfil.value} {usuario.nome_completo} com o espaço {espaco.nome} removido."}
