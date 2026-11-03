@@ -23,6 +23,7 @@ solicitações/reservas.
 | Atualizar dados | `PUT /espacos/{id_espaco}` | Administrador ou Coordenador | 200, `EspacoResposta` |
 | Reativar | `PATCH /espacos/{id_espaco}/reativar` | Administrador | 200, `EspacoResposta` |
 | Atualizar horário | `PATCH /espacos/{id_espaco}/horarios` | Administrador ou Coordenador | 200 |
+| Consultar horários | `GET /espacos/{id_espaco}/horarios` | Autenticado | 200, lista de `HorarioFuncionamentoResposta` |
 | Vincular usuário | `POST /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador | 201 |
 | Desvincular usuário | `DELETE /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador | 200 |
 | Adicionar pausa | `POST /espacos/{id_espaco}/pausas` | Administrador ou Coordenador | 201, `PausaResposta` |
@@ -127,10 +128,16 @@ verifica se o espaço existe e constrói a entidade de horário; o domínio exig
 que fechamento seja posterior à abertura. Depois, o repositório procura o
 registro existente para aquele espaço e dia e atualiza suas horas e estado.
 
-Não há caso de uso nem rota HTTP para consultar os horários existentes. Embora
-o contrato e o repositório tenham busca de horários, a API não expõe essa
-operação. Atualização de um dia sem registro prévio levanta `ValueError` em
-vez de criar um novo registro.
+`GET /espacos/{id_espaco}/horarios` verifica se o espaço existe e retorna os
+horários ordenados por `dia_semana`, incluindo `ativo`, abertura e fechamento.
+Um espaço inexistente retorna 404; a rota requer autenticação, mas está
+disponível para qualquer perfil autenticado. Atualização de um dia sem
+registro prévio levanta `ValueError` em vez de criar um novo registro.
+
+O cálculo da disponibilidade e a consulta de reservas estão no módulo
+`agendamento`; a verificação do funcionamento semanal e das pausas usa as
+regras e os dados mantidos pelo módulo de espaços. Veja
+[casos de uso de agendamentos](./agendamento.md).
 
 ## Gerenciar vínculos de usuários
 
@@ -175,8 +182,7 @@ exceções esperadas não são traduzidas uniformemente.
 
 ## Limitações e comportamentos que não estão implementados
 
-- Não há exclusão definitiva de espaço.
-- Não há consulta de horários, nem validação de conflito entre pausas.
+- Não há exclusão definitiva de espaço nem validação de conflito entre pausas.
 - Não há limite positivo para capacidade, normalização de nomes ou validação
   dos comprimentos de textos contra todas as colunas do banco.
 - Nenhuma ordenação é explicitamente solicitada para espaços ou pausas.

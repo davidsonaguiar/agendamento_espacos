@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 from app.modulos.espacos.dominio.entidades import (
     EspacoHorarioFuncionamento,
@@ -17,6 +18,15 @@ class RegrasHorarioRepositorioContrato(ABC):
 
     @abstractmethod
     def buscar_horarios_por_espaco(self, id_espaco: int) -> list[EspacoHorarioFuncionamento]:
+        pass
+
+    @abstractmethod
+    def verificar_funcionamento(
+        self,
+        id_espaco: int,
+        data_hora_inicio: datetime,
+        data_hora_fim: datetime,
+    ) -> str | None:
         pass
 
     @abstractmethod

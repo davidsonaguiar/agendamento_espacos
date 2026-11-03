@@ -13,7 +13,7 @@ class EspacoPausaFuncionamento(EntidadeBase):
     data_fim: date
     motivo: str
     id_espaco: int
-    
+
     model_config = ConfigDict(from_attributes=True)
 
     @model_validator(mode='after')
