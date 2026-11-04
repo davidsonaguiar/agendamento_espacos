@@ -32,14 +32,14 @@ from app.modulos.agendamento.casos_uso.obter_url_anexo import (
 from app.modulos.agendamento.casos_uso.propor_replanejamento import (
     ProporReplanejamentoCasoDeUso,
 )
+from app.modulos.agendamento.casos_uso.reservar_horarios_aprovados import (
+    ReservarHorariosAprovadosCasoDeUso,
+)
 from app.modulos.agendamento.casos_uso.responder_complementacao import (
     ResponderComplementacaoCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.responder_proposta import (
     ResponderPropostaCasoDeUso,
-)
-from app.modulos.agendamento.casos_uso.reservar_horarios_aprovados import (
-    ReservarHorariosAprovadosCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.solicitar_complementacao import (
     SolicitarComplementacaoCasoDeUso,

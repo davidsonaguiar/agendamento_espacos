@@ -14,11 +14,11 @@ from app.modulos.agendamento.casos_uso.criar_solicitacao import (
     CriarSolicitacaoCasoDeUso,
     DadosNovaSolicitacao,
 )
-from app.modulos.agendamento.casos_uso.listar_solicitacoes import (
-    ListarSolicitacoesCasoDeUso,
-)
 from app.modulos.agendamento.casos_uso.decidir_solicitacao import (
     DecidirSolicitacaoCasoDeUso,
+)
+from app.modulos.agendamento.casos_uso.listar_solicitacoes import (
+    ListarSolicitacoesCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.obter_solicitacao import (
     ObterSolicitacaoCasoDeUso,
@@ -259,11 +259,12 @@ def responder_proposta(
 )
 def anexar_arquivo(
     id_solicitacao: int,
-    arquivo: UploadFile = File(...),
-    usuario_logado: Usuario = Depends(apenas_servidor),
-    caso_de_uso: AnexarArquivoSolicitacaoCasoDeUso = Depends(
-        pegar_caso_de_uso_anexar_arquivo
-    ),
+    arquivo: Annotated[UploadFile, File(...)],
+    usuario_logado: Annotated[Usuario, Depends(apenas_servidor)],
+    caso_de_uso: Annotated[
+        AnexarArquivoSolicitacaoCasoDeUso,
+        Depends(pegar_caso_de_uso_anexar_arquivo),
+    ],
 ) -> AnexoSolicitacaoResposta:
     conteudo = arquivo.file.read(LIMITE_ANEXO_BYTES + 1)
     return caso_de_uso.executar(
