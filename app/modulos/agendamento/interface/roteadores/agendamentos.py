@@ -36,13 +36,13 @@ roteador = APIRouter(prefix="/agendamentos")
     dependencies=[Depends(obter_usuario_atual)],
 )
 def consultar_horarios_disponiveis(
-    id_espaco: int,
     data_inicio: date,
     data_fim: date,
     caso_de_uso: Annotated[
         ConsultarHorariosDisponiveisCasoDeUso,
         Depends(pegar_caso_de_uso_consultar_horarios_disponiveis),
     ],
+    id_espaco: int | None = None,
     ids_recursos: Annotated[list[int] | None, Query()] = None,
 ) -> list[PeriodoReserva]:
     return caso_de_uso.executar(
@@ -60,7 +60,6 @@ def consultar_horarios_disponiveis(
     summary="Consultar disponibilidade de um espaço em um período",
 )
 def consultar_disponibilidade(
-    id_espaco: int,
     data_hora_inicio: datetime,
     data_hora_fim: datetime,
     usuario_logado: Annotated[Usuario, Depends(obter_usuario_atual)],
@@ -68,14 +67,18 @@ def consultar_disponibilidade(
         ConsultarDisponibilidadeCasoDeUso,
         Depends(pegar_caso_de_uso_consultar_disponibilidade),
     ],
+    id_espaco: int | None = None,
+    ids_recursos: Annotated[list[int] | None, Query()] = None,
 ) -> DisponibilidadeReservaResposta:
-    disponivel, motivo = caso_de_uso.executar(
+    disponivel, motivo, id_espaco_resolvido, espaco_reservado = caso_de_uso.executar(
         id_espaco,
         data_hora_inicio,
         data_hora_fim,
+        ids_recursos,
     )
     return DisponibilidadeReservaResposta(
-        id_espaco=id_espaco,
+        id_espaco=id_espaco_resolvido,
+        espaco_reservado=espaco_reservado,
         data_hora_inicio=data_hora_inicio,
         data_hora_fim=data_hora_fim,
         disponivel=disponivel,

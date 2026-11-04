@@ -1,4 +1,3 @@
-from .tipo_solicitacao import TipoSolicitacao
 from .status_solicitacao import (
     DecisaoSolicitacao,
     SituacaoInteracaoSolicitacao,
@@ -16,7 +15,6 @@ from .solicitacao import InteracaoSolicitacao, Solicitacao
 from .reserva_agenda import PeriodoReserva, ReservaAgenda, SituacaoReserva
 
 __all__ = [
-    "TipoSolicitacao",
     "StatusSolicitacao",
     "StatusDecisaoSolicitacao",
     "DecisaoSolicitacao",

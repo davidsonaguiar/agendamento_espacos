@@ -31,6 +31,7 @@ class ReservaAgenda(PeriodoReserva):
     situacao: SituacaoReserva
     id_solicitacao: int
     id_espaco: int
+    espaco_reservado: bool = True
     ids_recursos: list[int] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

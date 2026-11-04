@@ -22,11 +22,19 @@ class ConsultarHorariosDisponiveisCasoDeUso:
 
     def executar(
         self,
-        id_espaco: int,
+        id_espaco: int | None,
         data_inicio: date,
         data_fim: date,
         ids_recursos: list[int] | None = None,
     ) -> list[PeriodoReserva]:
+        espaco_reservado = id_espaco is not None
+        recursos = ids_recursos or []
+        if len(recursos) != len(set(recursos)):
+            raise RegraDeNegocioErro("Não informe recursos duplicados.")
+        if id_espaco is None:
+            id_espaco = self.agendamento_repositorio.buscar_id_espaco_dos_recursos(
+                recursos
+            )
         if id_espaco <= 0:
             raise RegraDeNegocioErro("O ID do espaço deve ser positivo.")
         if data_fim < data_inicio:
@@ -40,12 +48,13 @@ class ConsultarHorariosDisponiveisCasoDeUso:
                 f"O período consultado não pode exceder {self.LIMITE_DIAS} dias."
             )
 
-        recursos = ids_recursos or []
         if any(id_recurso <= 0 for id_recurso in recursos):
             raise RegraDeNegocioErro("Os IDs dos recursos devem ser positivos.")
-        if len(recursos) != len(set(recursos)):
-            raise RegraDeNegocioErro("Não informe recursos duplicados.")
-        self.agendamento_repositorio.validar_recursos(id_espaco, recursos)
+        self.agendamento_repositorio.validar_recursos(
+            id_espaco,
+            recursos,
+            exigir_independentes=not espaco_reservado,
+        )
 
         horarios = [
             horario
@@ -94,8 +103,13 @@ class ConsultarHorariosDisponiveisCasoDeUso:
                             reserva.data_hora_inicio < fim_slot
                             and reserva.data_hora_fim > inicio_slot
                             and (
-                                reserva.id_espaco == id_espaco
-                                or not recursos
+                                (
+                                    reserva.id_espaco == id_espaco
+                                    and (
+                                        espaco_reservado
+                                        or reserva.espaco_reservado
+                                    )
+                                )
                                 or set(recursos).intersection(reserva.ids_recursos)
                             )
                             for reserva in reservas

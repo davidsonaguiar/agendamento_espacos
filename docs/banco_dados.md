@@ -82,11 +82,11 @@ erDiagram
 
     SOLICITACAO {
         int id PK
-        string tipo
         string finalidade
         boolean urgencia
         string status
         string decisao_justificativa
+        boolean espaco_reservado
         int id_projeto FK
         int id_solicitante FK
         int id_espaco FK
@@ -124,6 +124,7 @@ erDiagram
         datetime data_hora_inicio
         datetime data_hora_fim
         string situacao
+        boolean espaco_reservado
         int id_solicitacao FK
         int id_espaco FK
     }
@@ -236,6 +237,7 @@ erDiagram
 *   **Justificativa:** O "pedido" de uso feito pelo servidor (RF-03 e FB-01).
 *   **Atributos:**
     *   `urgencia`: Requisito RF-07, informa ao gestor prioridade de análise.
+    *   `espaco_reservado`: Indica se a solicitação reserva o espaço inteiro; para reserva independente de recurso, fica falso e `id_espaco` identifica o espaço físico do recurso.
     *   `status`: Situação do pedido (`Pendente`, `AguardandoComplementacao`, `AguardandoRespostaProposta`, `Aprovado`, `Rejeitado` ou `Cancelada`).
     *   `decisao_justificativa`: O coordenador *precisa* registrar o motivo da sua decisão (RF-09).
 *   **Implementação atual:** Administrador ou Coordenador pode aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
@@ -245,8 +247,8 @@ erDiagram
 *   **Atributos:** `data_reserva` (DATE), `hora_inicio` e `hora_fim` (TIME). A API exige ao menos um horário, data/início futuros e hora final posterior à inicial.
 
 #### Tabela: `SOLICITACAO_RECURSO`
-*   **Justificativa:** Uma solicitação a um espaço pode exigir o uso de N máquinas/equipamentos específicos.
-*   **Implementação atual:** a associação é validada para recursos do espaço solicitado e recursos indisponíveis são rejeitados.
+*   **Justificativa:** Uma solicitação pode reservar o espaço inteiro, opcionalmente com recursos, ou apenas recursos independentes.
+*   **Implementação atual:** quando o espaço inteiro é solicitado, os recursos devem pertencer a ele. Para reserva somente de recursos, todos devem ser independentes, disponíveis e pertencer ao mesmo espaço físico.
 
 #### Tabela: `ANEXO`
 *   **Implementação atual:** a tabela `anexo` guarda metadados e o caminho interno do objeto no Supabase Storage; o bucket é privado, portanto `url_caminho` não é uma URL pública.
@@ -288,11 +290,23 @@ CREATE TABLE IF NOT EXISTS public.agenda_reserva (
     data_hora_inicio timestamp without time zone NOT NULL,
     data_hora_fim timestamp without time zone NOT NULL,
     situacao varchar(50) NOT NULL DEFAULT 'Confirmada',
+    espaco_reservado boolean NOT NULL DEFAULT true,
     id_solicitacao integer NOT NULL
         REFERENCES public.solicitacao(id) ON DELETE CASCADE,
     id_espaco integer NOT NULL
         REFERENCES public.espaco(id) ON DELETE CASCADE
 );
+
+ALTER TABLE public.solicitacao
+    DROP COLUMN IF EXISTS tipo;
+
+ALTER TABLE public.solicitacao
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.agenda_reserva
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+DROP TYPE IF EXISTS public.tipo_solicitacao;
 
 CREATE INDEX IF NOT EXISTS ix_agenda_reserva_data_hora_inicio
     ON public.agenda_reserva (data_hora_inicio);
@@ -346,7 +360,7 @@ Confirme que `public.solicitacao.id` usa o tipo `integer` antes de executar a mi
 ### 📆 4. Efetivação: Agenda e Rastreabilidade
 
 #### Tabelas: `AGENDA_RESERVA` e `AGENDA_RESERVA_RECURSO`
-*   **Implementação atual de `AGENDA_RESERVA`:** a aprovação cria uma linha por horário solicitado, com `situacao=Confirmada`. As reservas guardam os recursos aprovados; conflitos por espaço e recurso são verificados e a disponibilidade considera apenas reservas confirmadas.
+*   **Implementação atual de `AGENDA_RESERVA`:** a aprovação cria uma linha por horário solicitado, com `situacao=Confirmada`. `espaco_reservado` distingue reserva integral do espaço de reserva independente de recurso; `id_espaco` identifica o espaço físico e as reservas guardam os recursos aprovados. Conflitos por espaço e recurso são verificados e a disponibilidade considera apenas reservas confirmadas.
 *   **Justificativa:** Representa o tempo bloqueado oficialmente na agenda após uma `SOLICITACAO` ter sido aprovada (RF-10 e RF-12).
 *   **Diferencial:** Ao isolar os recursos aprovados na tabela `AGENDA_RESERVA_RECURSO`, o sistema consegue checar individualmente conflitos de ferramentas. (Ex: O espaço pode estar livre, mas o osciloscópio solicitado já está em uso).
 

@@ -7,6 +7,7 @@ from app.compartilhado.dominio.entidade_base import EntidadeBase
 from .espaco_horario_funcionamento import EspacoHorarioFuncionamento
 from .espaco_pausa_funcionamento import EspacoPausaFuncionamento
 from .espaco_usuario_vinculado import EspacoUsuarioVinculado
+from .reserva_associada import ReservaAssociada
 from .recurso import Recurso
 
 
@@ -22,5 +23,6 @@ class Espaco(EntidadeBase):
         default_factory=list
     )
     pausas_funcionamento: list[EspacoPausaFuncionamento] = Field(default_factory=list)
+    reservas: list[ReservaAssociada] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

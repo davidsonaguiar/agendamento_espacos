@@ -139,10 +139,35 @@ Os testes exercitam a API HTTP com `TestClient` e um banco SQLite isolado por
 teste. O armazenamento de anexos é substituído por um fake, sem chamadas ao
 Supabase ou ao banco de desenvolvimento.
 
+No Windows, abra o PowerShell na pasta do projeto e prepare o ambiente:
+
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
+```
+
+Para executar todos os testes:
+
+```powershell
 python -m pytest
 ```
+
+Para executar somente os testes de agendamento:
+
+```powershell
+python -m pytest tests\agendamento
+```
+
+Para executar um arquivo específico e exibir um resumo conciso:
+
+```powershell
+python -m pytest tests\agendamento\test_consultas_agendamento_endpoint.py -q
+```
+
+O comando `python -m pytest` também funciona sem ativar o ambiente virtual se
+as dependências de `requirements-dev.txt` já estiverem instaladas no Python
+em uso.
 
 ### Passos
 

@@ -12,6 +12,7 @@ class ReservaAgendaResposta(BaseModel):
     situacao: SituacaoReserva
     id_solicitacao: int
     id_espaco: int
+    espaco_reservado: bool = True
     ids_recursos: list[int] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -19,6 +20,7 @@ class ReservaAgendaResposta(BaseModel):
 
 class DisponibilidadeReservaResposta(BaseModel):
     id_espaco: int
+    espaco_reservado: bool
     data_hora_inicio: datetime
     data_hora_fim: datetime
     disponivel: bool

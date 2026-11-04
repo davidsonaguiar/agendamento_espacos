@@ -61,6 +61,7 @@ class ProporReplanejamentoCasoDeUso:
             id_espaco=solicitacao.id_espaco,
             periodos=periodos,
             ids_recursos=ids_recursos,
+            espaco_reservado=solicitacao.espaco_reservado,
         )
         return self.repositorio.propor_replanejamento(
             id_solicitacao,

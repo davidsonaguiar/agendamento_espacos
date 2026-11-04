@@ -121,7 +121,6 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             raise EntidadeNaoEncontradaErro("Usuário", id_inexistente)
 
         modelo = SolicitacaoModelo(
-            tipo=solicitacao.tipo,
             finalidade=solicitacao.finalidade,
             urgencia=solicitacao.urgencia,
             status=solicitacao.status,
@@ -129,6 +128,7 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             id_projeto=solicitacao.id_projeto,
             id_solicitante=solicitacao.id_solicitante,
             id_espaco=solicitacao.id_espaco,
+            espaco_reservado=solicitacao.espaco_reservado,
             usuarios_envolvidos=usuarios,
             recursos=recursos,
             horarios=[
@@ -454,7 +454,6 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
     def _converter(modelo: SolicitacaoModelo) -> Solicitacao:
         return Solicitacao(
             id=modelo.id,
-            tipo=modelo.tipo,
             finalidade=modelo.finalidade,
             urgencia=modelo.urgencia,
             status=modelo.status,
@@ -462,6 +461,7 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
             id_projeto=modelo.id_projeto,
             id_solicitante=modelo.id_solicitante,
             id_espaco=modelo.id_espaco,
+            espaco_reservado=modelo.espaco_reservado,
             projeto=(
                 ProjetoRelacionadoSolicitacao(
                     id=modelo.projeto.id,

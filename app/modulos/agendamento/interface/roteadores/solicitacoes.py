@@ -96,7 +96,6 @@ def criar_solicitacao(
     ],
 ) -> Solicitacao:
     dados_caso_de_uso = DadosNovaSolicitacao(
-        tipo=dados.tipo,
         finalidade=dados.finalidade,
         urgencia=dados.urgencia,
         id_projeto=dados.id_projeto,

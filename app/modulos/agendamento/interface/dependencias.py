@@ -54,6 +54,7 @@ from app.modulos.agendamento.infra.repositorios import (
 from app.modulos.espacos.infra.repositorios import (
     EspacoRepositorio,
     RegrasHorarioRepositorio,
+    RecursoRepositorio,
 )
 from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
@@ -144,6 +145,7 @@ def pegar_caso_de_uso_criar_solicitacao(
         SolicitacaoRepositorio(db),
         ProjetoRepositorio(db),
         EspacoRepositorio(db),
+        RecursoRepositorio(db),
         UsuarioRepositorio(db),
     )
 
