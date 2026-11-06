@@ -12,6 +12,7 @@ class Config(BaseSettings):
     supabase_url: str | None = None
     supabase_service_role_key: SecretStr | None = None
     supabase_bucket_anexos: str = "anexos-solicitacoes"
+    seed_password: SecretStr | None = None
 
     @property
     def lista_origens_cors(self) -> list[str]:
