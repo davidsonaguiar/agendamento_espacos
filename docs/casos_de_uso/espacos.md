@@ -10,8 +10,10 @@ Um espaço pode possuir vários recursos, como impressoras 3D, computadores ou
 CNC. `Recurso` registra nome, tipo, necessidade de autorização, disponibilidade,
 se permite reserva independente (`reserva_independente`, padrão `false`) e o
 ID do espaço associado. O cadastro e a manutenção estão disponíveis pelas rotas
-abaixo; a reserva dos recursos continua a ser tratada futuramente no fluxo de
-solicitações/reservas.
+abaixo. As respostas de listagem incluem as reservas confirmadas: o espaço
+apresenta somente reservas do espaço físico, enquanto cada recurso apresenta
+suas próprias reservas, inclusive quando listadas dentro do espaço. Reservas
+passadas também são incluídas.
 
 ## Endpoints e autorização
 
@@ -48,7 +50,8 @@ caso de uso.
   `limit` (1–100, padrão 100). Administradores, Coordenadores e Monitores
   podem ver todos os recursos, inclusive os indisponíveis. Os demais perfis
   autenticados veem somente os recursos disponíveis. Os resultados vêm em
-  ordem de ID.
+  ordem de ID e incluem em `reservas` as reservas confirmadas associadas ao
+  recurso.
 - **Atualizar:** exige recurso pertencente ao espaço informado; atualiza nome,
   tipo, necessidade de autorização e permissão de reserva independente.
 - **Indisponibilizar:** `DELETE` é uma exclusão lógica, que define
@@ -93,7 +96,9 @@ uma lista simples, sem total:
 - Outros perfis autenticados: lista vazia.
 
 O repositório aplica os filtros e limites, sem ordenar explicitamente os
-resultados.
+resultados. Cada item inclui `reservas` confirmadas do espaço; as reservas
+independentes de recursos não aparecem nesse campo, mas constam em
+`reservas` no recurso correspondente.
 
 ## Atualizar dados de espaço
 

@@ -139,10 +139,35 @@ Os testes exercitam a API HTTP com `TestClient` e um banco SQLite isolado por
 teste. O armazenamento de anexos é substituído por um fake, sem chamadas ao
 Supabase ou ao banco de desenvolvimento.
 
+No Windows, abra o PowerShell na pasta do projeto e prepare o ambiente:
+
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
+```
+
+Para executar todos os testes:
+
+```powershell
 python -m pytest
 ```
+
+Para executar somente os testes de agendamento:
+
+```powershell
+python -m pytest tests\agendamento
+```
+
+Para executar um arquivo específico e exibir um resumo conciso:
+
+```powershell
+python -m pytest tests\agendamento\test_consultas_agendamento_endpoint.py -q
+```
+
+O comando `python -m pytest` também funciona sem ativar o ambiente virtual se
+as dependências de `requirements-dev.txt` já estiverem instaladas no Python
+em uso.
 
 ### Passos
 
@@ -201,7 +226,25 @@ python -m pytest
 6. **Crie as tabelas iniciais:**
    Ao iniciar, a aplicação cria tabelas ausentes. A criação automática não altera tabelas existentes; o versionamento e as alterações do schema devem seguir o fluxo de migração do banco.
 
-7. **Inicie o Servidor Local:**
+7. **Popule o banco com dados de demonstração (opcional):**
+   O comando abaixo cria usuários para todos os perfis, espaços, recursos, um
+   projeto e solicitações de exemplo. A execução é idempotente e não acontece
+   ao iniciar a aplicação. Use apenas em bancos de desenvolvimento ou teste.
+   Defina `SEED_PASSWORD` no ambiente ou adicione essa variável ao arquivo
+   `.env` na raiz do projeto:
+
+   ```powershell
+   $env:SEED_PASSWORD = "uma-senha-local-segura"
+   python -m app.compartilhado.infra.seeds
+   ```
+
+   Se a variável estiver no `.env`, execute o segundo comando no mesmo
+   diretório em que está esse arquivo.
+
+   As contas criadas usam endereços `seed.*@example.com` e todas recebem a
+   senha definida em `SEED_PASSWORD`.
+
+8. **Inicie o Servidor Local:**
 
    ```
    python -m uvicorn main:app --reload

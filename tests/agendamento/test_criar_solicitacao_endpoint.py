@@ -65,7 +65,7 @@ def test_criar_solicitacao_rejeita_requisicao_sem_token(client, espaco):
 @pytest.mark.parametrize(
     "alteracoes",
     [
-        {"tipo": "Tipo inexistente"},
+        {"tipo": "Espaço"},
         {"finalidade": "x"},
         {"id_espaco": 0},
         {"horarios": []},

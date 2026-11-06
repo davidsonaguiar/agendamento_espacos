@@ -9,5 +9,6 @@ from .pausa_resposta import PausaResposta
 from .espaco_resposta import EspacoResposta
 from .atualizar_horario import AtualizarHorario
 from .criar_pausa_funcionamento import CriarPausaFuncionamento
+from .reserva_associada_resposta import ReservaAssociadaResposta
 
-__all__ = ['CriarRecurso', 'AtualizarRecurso', 'RecursoResposta', 'CriarEspaco', 'AtualizarEspaco', 'UsuarioVinculadoResposta', 'HorarioFuncionamentoResposta', 'PausaResposta', 'EspacoResposta', 'AtualizarHorario', 'CriarPausaFuncionamento']
+__all__ = ['CriarRecurso', 'AtualizarRecurso', 'RecursoResposta', 'CriarEspaco', 'AtualizarEspaco', 'UsuarioVinculadoResposta', 'HorarioFuncionamentoResposta', 'PausaResposta', 'EspacoResposta', 'AtualizarHorario', 'CriarPausaFuncionamento', 'ReservaAssociadaResposta']

@@ -35,7 +35,6 @@ def criar_projeto(client, headers, id_responsavel):
 
 def payload_solicitacao(espaco_id: int, **overrides):
     return {
-        "tipo": "Espaço",
         "finalidade": "Atividade de integração",
         "urgencia": False,
         "id_espaco": espaco_id,

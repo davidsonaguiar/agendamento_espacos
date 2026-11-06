@@ -32,14 +32,14 @@ from app.modulos.agendamento.casos_uso.obter_url_anexo import (
 from app.modulos.agendamento.casos_uso.propor_replanejamento import (
     ProporReplanejamentoCasoDeUso,
 )
+from app.modulos.agendamento.casos_uso.reservar_horarios_aprovados import (
+    ReservarHorariosAprovadosCasoDeUso,
+)
 from app.modulos.agendamento.casos_uso.responder_complementacao import (
     ResponderComplementacaoCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.responder_proposta import (
     ResponderPropostaCasoDeUso,
-)
-from app.modulos.agendamento.casos_uso.reservar_horarios_aprovados import (
-    ReservarHorariosAprovadosCasoDeUso,
 )
 from app.modulos.agendamento.casos_uso.solicitar_complementacao import (
     SolicitarComplementacaoCasoDeUso,
@@ -54,6 +54,7 @@ from app.modulos.agendamento.infra.repositorios import (
 from app.modulos.espacos.infra.repositorios import (
     EspacoRepositorio,
     RegrasHorarioRepositorio,
+    RecursoRepositorio,
 )
 from app.modulos.projetos.infra.repositorios import ProjetoRepositorio
 from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
@@ -144,6 +145,7 @@ def pegar_caso_de_uso_criar_solicitacao(
         SolicitacaoRepositorio(db),
         ProjetoRepositorio(db),
         EspacoRepositorio(db),
+        RecursoRepositorio(db),
         UsuarioRepositorio(db),
     )
 

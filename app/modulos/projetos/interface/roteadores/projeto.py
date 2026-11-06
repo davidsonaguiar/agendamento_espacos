@@ -33,7 +33,7 @@ from app.modulos.usuarios.interface.seguranca_http import (
     obter_usuario_atual,
 )
 
-roteador = APIRouter(prefix="/projetos", tags=["Projetos"])
+roteador = APIRouter(prefix="/projetos", tags=["Projeto"])
 
 apenas_admin = VerificarPerfil([PerfilUsuario.ADMINISTRADOR])
 

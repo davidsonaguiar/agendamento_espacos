@@ -14,6 +14,7 @@ from app.modulos.espacos.dominio.entidades import (
 from app.modulos.espacos.infra.modelos import EspacoModelo, espaco_usuario_tabela
 
 from .recurso_repositorio import RecursoRepositorio
+from .reservas_associadas import listar_reservas_por_espacos
 
 
 class EspacoRepositorio(EspacoRepositorioContrato):
@@ -38,7 +39,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         )
         if not modelo:
             return None
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
     def listar(
         self,
@@ -58,7 +59,18 @@ class EspacoRepositorio(EspacoRepositorioContrato):
             consulta = consulta.filter(EspacoModelo.disponibilidade == True)
 
         modelos = consulta.offset(skip).limit(limit).all()
-        return [self._converter(modelo) for modelo in modelos]
+        reservas_por_espaco, reservas_por_recurso = listar_reservas_por_espacos(
+            self.db,
+            [modelo.id for modelo in modelos],
+        )
+        return [
+            self._converter(
+                modelo,
+                reservas_por_espaco.get(modelo.id, []),
+                reservas_por_recurso,
+            )
+            for modelo in modelos
+        ]
 
     def buscar_por_id(self, id_espaco: int) -> Espaco | None:
         modelo = (
@@ -68,7 +80,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         )
         if not modelo:
             return None
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
 
     def salvar(self, espaco: Espaco) -> Espaco:
@@ -82,7 +94,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         self.db.add(modelo)
         self.db.flush()
         self.db.refresh(modelo)
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
     def atualizar(self, espaco: Espaco) -> Espaco:
         modelo = (
@@ -99,7 +111,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
 
             self.db.commit()
             self.db.refresh(modelo)
-            return self._converter(modelo)
+            return self._converter_com_reservas(modelo)
         raise ValueError("Espaço não encontrado no banco de dados.")
 
     def _consulta_com_relacionamentos(self):
@@ -110,8 +122,24 @@ class EspacoRepositorio(EspacoRepositorioContrato):
             selectinload(EspacoModelo.recursos),
         )
 
+    def _converter_com_reservas(self, modelo: EspacoModelo) -> Espaco:
+        reservas_por_espaco, reservas_por_recurso = listar_reservas_por_espacos(
+            self.db,
+            [modelo.id],
+        )
+        return self._converter(
+            modelo,
+            reservas_por_espaco.get(modelo.id, []),
+            reservas_por_recurso,
+        )
+
     @staticmethod
-    def _converter(modelo: EspacoModelo) -> Espaco:
+    def _converter(
+        modelo: EspacoModelo,
+        reservas=None,
+        reservas_por_recurso=None,
+    ) -> Espaco:
+        reservas_por_recurso = reservas_por_recurso or {}
         return Espaco(
             id=modelo.id,
             nome=modelo.nome,
@@ -135,9 +163,13 @@ class EspacoRepositorio(EspacoRepositorioContrato):
                 for pausa in modelo.pausas_funcionamento
             ],
             recursos=[
-                RecursoRepositorio._converter(recurso)
+                RecursoRepositorio._converter(
+                    recurso,
+                    reservas=reservas_por_recurso.get(recurso.id, []),
+                )
                 for recurso in modelo.recursos
             ],
+            reservas=reservas or [],
         )
 
     def verificar_vinculo(self, id_espaco: int, id_usuario: int) -> bool:
