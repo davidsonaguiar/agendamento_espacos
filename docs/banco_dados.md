@@ -189,6 +189,11 @@ erDiagram
     *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados de identificação institucional do Membro.
     *   `perfil`: Define o papel global (`Administrador` ou `Membro`). Coordenador e Monitor são papéis locais armazenados em `ESPACO_USUARIO.perfil_espaco`.
 
+#### Tabelas: `SESSAO_AUTENTICACAO` e `REFRESH_TOKEN`
+*   `sessao_autenticacao` representa uma sessão/dispositivo e guarda o usuário, criação, expiração e revogação. Cada JWT de acesso referencia a sessão por `sid`, permitindo invalidação imediata.
+*   `refresh_token` guarda somente o hash SHA-256 de cada refresh token, sua expiração e data de consumo. A rotação preserva hashes consumidos para detectar reutilização e revogar a sessão.
+*   A aplicação cria essas tabelas automaticamente em bancos existentes ao iniciar.
+
 #### Tabela: `PROJETO`
 *   **Justificativa:** Atende ao RF-04, registrando o contexto que motiva o uso do laboratório (pesquisa, extensão, disciplina).
 *   **Atributos:**

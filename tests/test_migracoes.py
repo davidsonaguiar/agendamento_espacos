@@ -1,4 +1,10 @@
+import asyncio
+
+from fastapi import FastAPI
 from sqlalchemy import create_engine, text
+from sqlalchemy import inspect as inspecionar
+
+import app.compartilhado.infra.ciclo_vida as ciclo_vida
 
 from app.compartilhado.infra.migracoes import migrar_papeis_usuarios
 
@@ -59,5 +65,21 @@ def test_migrar_papeis_globais_preserva_perfis_locais_existentes():
             2: "Monitor",
             4: None,
         }
+    finally:
+        engine.dispose()
+
+
+def test_ciclo_de_vida_cria_tabelas_de_autenticacao(monkeypatch):
+    engine = create_engine("sqlite://")
+    monkeypatch.setattr(ciclo_vida, "motor", engine)
+
+    async def iniciar_aplicacao():
+        async with ciclo_vida.ciclo_de_vida_app(FastAPI()):
+            pass
+
+    try:
+        asyncio.run(iniciar_aplicacao())
+        tabelas = set(inspecionar(engine).get_table_names())
+        assert {"sessao_autenticacao", "refresh_token"} <= tabelas
     finally:
         engine.dispose()

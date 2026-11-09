@@ -136,5 +136,5 @@ def outro_servidor(
         db.refresh(usuario)
         return {
             "id": usuario.id,
-            "headers": cabecalhos_autenticacao(usuario.id),
+            "headers": cabecalhos_autenticacao(usuario.id, test_session_factory),
         }

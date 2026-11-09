@@ -210,16 +210,19 @@ em uso.
    ```env
    URL_BANCO_DADOS=postgresql+psycopg://colab_user:colab_password@localhost:5432/colab_db
    CHAVE_SECRETA=defina-uma-chave-segura
-   MINUTOS_EXPIRACAO_TOKEN=30
-   ORIGENS_CORS=*
+   MINUTOS_EXPIRACAO_TOKEN=15
+   DIAS_EXPIRACAO_REFRESH_TOKEN=7
+   REFRESH_COOKIE_SECURE=false
+   REFRESH_COOKIE_SAMESITE=lax
+   ORIGENS_CORS=http://localhost:5173
    HOSTS_PERMITIDOS=localhost,127.0.0.1
-   PERMITE_CREDENCIAIS_CORS=false
+   PERMITE_CREDENCIAIS_CORS=true
    SUPABASE_URL=https://<seu-projeto>.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=<chave-service-role>
    SUPABASE_BUCKET_ANEXOS=anexos-solicitacoes
    ```
 
-   `ORIGENS_CORS` recebe origens completas, separadas por vírgula (por exemplo, `http://localhost:5173`). `*` permite qualquer origem e não pode ser combinado com credenciais CORS. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
+   `ORIGENS_CORS` recebe origens completas, separadas por vírgula. Para usar cookies em chamadas de navegador entre origens, liste as origens explicitamente, habilite `PERMITE_CREDENCIAIS_CORS` e envie as requisições com credenciais; `*` não pode ser combinado com credenciais. `REFRESH_COOKIE_SECURE=false` é apenas para desenvolvimento local em HTTP; em produção use HTTPS e `true`. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
 
    Crie também um bucket **privado** no Supabase Storage chamado `anexos-solicitacoes`, com limite de 153.600 bytes e os tipos PDF e DOCX permitidos. `SUPABASE_SERVICE_ROLE_KEY` deve ficar somente no ambiente seguro do backend; nunca a exponha no frontend ou no controle de versão. Para o schema de um banco existente, siga a migração descrita em [`docs/banco_dados.md`](docs/banco_dados.md#migração-no-supabase).
 

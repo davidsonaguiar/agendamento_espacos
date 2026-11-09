@@ -2,9 +2,14 @@ from app.compartilhado.infra.banco_dados import SessaoBD
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioCasoDeUso
+from app.modulos.usuarios.casos_uso.alterar_senha import AlterarSenhaCasoDeUso
 from app.modulos.usuarios.casos_uso.cadastrar_usuario import CadastrarUsuarioCasoDeUso
+from app.modulos.usuarios.casos_uso.gerenciar_tokens import GerenciarTokensCasoDeUso
 from app.modulos.usuarios.casos_uso.listar_usuarios import ListarUsuariosCasoDeUso
-from app.modulos.usuarios.infra.repositorios import UsuarioRepositorio
+from app.modulos.usuarios.infra.repositorios import (
+    SessaoAutenticacaoRepositorio,
+    UsuarioRepositorio,
+)
 
 
 def pegar_caso_de_uso_cadastro(db: SessaoBD) -> CadastrarUsuarioCasoDeUso:
@@ -17,10 +22,28 @@ def pegar_caso_de_uso_cadastro(db: SessaoBD) -> CadastrarUsuarioCasoDeUso:
     )
 
 def pegar_caso_de_uso_autenticacao(db: SessaoBD) -> AutenticarUsuarioCasoDeUso:
+    repositorio_usuario = UsuarioRepositorio(db)
     return AutenticarUsuarioCasoDeUso(
+        repositorio=repositorio_usuario,
+        codificador=CodificadorSenha(),
+        tokens=GerenciarTokensCasoDeUso(
+            sessoes=SessaoAutenticacaoRepositorio(db),
+            usuarios=repositorio_usuario,
+            token_servico=JWT(),
+        ),
+    )
+
+def pegar_caso_de_uso_tokens(db: SessaoBD) -> GerenciarTokensCasoDeUso:
+    return GerenciarTokensCasoDeUso(
+        sessoes=SessaoAutenticacaoRepositorio(db),
+        usuarios=UsuarioRepositorio(db),
+        token_servico=JWT(),
+    )
+
+def pegar_caso_de_uso_alterar_senha(db: SessaoBD) -> AlterarSenhaCasoDeUso:
+    return AlterarSenhaCasoDeUso(
         repositorio=UsuarioRepositorio(db),
         codificador=CodificadorSenha(),
-        token_servico=JWT()
     )
 
 def pegar_caso_de_uso_listar_usuarios(db: SessaoBD) -> ListarUsuariosCasoDeUso:

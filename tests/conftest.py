@@ -1,5 +1,8 @@
 from collections.abc import AsyncIterator, Generator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
+import hashlib
+import secrets
 
 import pytest
 from fastapi import Depends, FastAPI
@@ -9,7 +12,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.compartilhado.infra.banco_dados import Base, pegar_banco_dados
+from app.compartilhado.infra.config import config
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
+from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.agendamento.casos_uso.anexar_arquivo import (
     AnexarArquivoSolicitacaoCasoDeUso,
 )
@@ -23,6 +28,7 @@ from app.modulos.agendamento.interface.dependencias import (
 )
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
+from app.modulos.usuarios.infra.repositorios import SessaoAutenticacaoRepositorio
 from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from app.modulos.espacos.infra.repositorios import EspacoRepositorio
 from main import app
@@ -144,16 +150,30 @@ def usuarios(
         }
 
 
-def cabecalhos_autenticacao(id_usuario: int) -> dict[str, str]:
-    from app.compartilhado.infra.seguranca.jwt import JWT
-
-    token = JWT().criar_token_acesso(id_usuario)
+def cabecalhos_autenticacao(
+    id_usuario: int,
+    factory: sessionmaker[Session],
+) -> dict[str, str]:
+    refresh_token = secrets.token_urlsafe(48)
+    with factory() as db:
+        id_sessao = SessaoAutenticacaoRepositorio(db).criar(
+            id_usuario=id_usuario,
+            hash_refresh_token=hashlib.sha256(
+                refresh_token.encode("utf-8")
+            ).hexdigest(),
+            expira_em=datetime.now(UTC)
+            + timedelta(days=config.dias_expiracao_refresh_token),
+        )
+    token = JWT().criar_token_acesso(id_usuario, id_sessao)
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
-def headers(usuarios: dict[PerfilUsuario | PerfilEspaco, int]):
+def headers(
+    usuarios: dict[PerfilUsuario | PerfilEspaco, int],
+    test_session_factory: sessionmaker[Session],
+):
     return {
-        perfil: cabecalhos_autenticacao(id_usuario)
+        perfil: cabecalhos_autenticacao(id_usuario, test_session_factory)
         for perfil, id_usuario in usuarios.items()
     }

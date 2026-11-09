@@ -32,3 +32,7 @@ class UsuarioRepositorioContrato(ABC):
     @abstractmethod
     def salvar(self, usuario: Usuario) -> Usuario:
         pass
+
+    @abstractmethod
+    def atualizar_senha(self, id_usuario: int, senha_codificada: str) -> None:
+        pass

@@ -13,7 +13,11 @@ do usuário.
 | Criar conta de membro | `POST /usuarios/` | Público |
 | Cadastrar usuário interno | `POST /usuarios/interno` | Administrador |
 | Autenticar | `POST /usuarios/login` | Público |
+| Renovar tokens | `POST /usuarios/refresh` | Cookie de refresh |
+| Encerrar sessão atual | `POST /usuarios/logout` | Cookie de refresh |
+| Encerrar todas as sessões | `POST /usuarios/logout-todos` | Usuário autenticado |
 | Consultar usuário autenticado | `GET /usuarios/me` | Usuário autenticado |
+| Alterar senha | `POST /usuarios/me/senha` | Usuário autenticado |
 | Listar usuários | `GET /usuarios/` | Administrador |
 
 O caminho legado `POST /usuarios/servidor` continua aceito por compatibilidade,
@@ -68,26 +72,52 @@ ser atribuídos a membros em um espaço, pela gestão de vínculos descrita em
 Recebe `UsuarioLogin` (`identificacao` e `senha`). Se a identificação contiver
 `@`, é tratada como e-mail; caso contrário, o fluxo remove pontos e hífens e
 a trata como CPF. O repositório busca por igualdade exata. Depois, o
-codificador verifica a senha e, em caso de sucesso, o serviço JWT gera token
-assinado com HS256. O payload contém o ID do usuário em `sub` e os horários
-de emissão (`iat`) e expiração (`exp`).
+codificador verifica a senha e, em caso de sucesso, emite um JWT de acesso
+assinado com HS256 e um refresh token aleatório. O payload do JWT contém o ID
+do usuário (`sub`), o ID da sessão (`sid`), o tipo (`typ=access`) e os horários
+de emissão (`iat`) e expiração (`exp`). O refresh token é enviado somente em
+cookie `HttpOnly`, `SameSite` configurável e `Secure` por padrão.
 
 A resposta `TokenResposta` contém `access_token`, `token_type` (`bearer`) e
-os dados do usuário no formato `UsuarioResposta`.
+os dados do usuário no formato `UsuarioResposta`; o refresh token não é
+incluído no JSON. O access token expira em 15 minutos por padrão.
 
 - Usuário não encontrado ou senha incorreta: `CredenciaisInvalidasErro`
   (HTTP 401).
 - Senha correta para usuário inativo: `AcessoNegadoErro` (HTTP 403), com
   orientação para procurar a coordenação.
-- A validade do token usa a chave secreta e a duração configuradas na
-  aplicação.
+- A validade do refresh token é de 7 dias por padrão e é renovada a cada
+  rotação bem-sucedida.
+
+## Renovação e invalidação
+
+`POST /usuarios/refresh` exige o cookie `refresh_token`. A cada renovação, o
+token anterior é consumido e um novo é emitido. A reutilização de qualquer
+token já consumido revoga a sessão inteira. Os tokens são imprevisíveis e
+somente seus hashes SHA-256 são persistidos. A expiração de sete dias é móvel:
+cada rotação bem-sucedida inicia um novo prazo de sete dias.
+
+`POST /usuarios/logout` revoga a sessão identificada pelo cookie e o remove
+do navegador. `POST /usuarios/logout-todos` revoga todas as sessões do usuário.
+Além de validar assinatura e expiração, cada chamada autenticada confere no
+banco se a sessão ainda está ativa; assim, logout e revogação invalidam também
+access tokens já emitidos.
+
+Clientes web devem enviar credenciais nas chamadas à API. Para origens
+distintas, configure origens CORS explícitas e habilite credenciais no backend
+e no cliente.
+
+`POST /usuarios/me/senha` exige a senha atual e uma nova senha com no mínimo
+oito caracteres. Alterar a senha ou desativar a conta revoga todas as sessões.
+Uma nova autenticação é necessária após a troca.
 
 ## Consultar usuário autenticado
 
 **Endpoint:** `GET /usuarios/me`.
 
-`obter_usuario_atual` exige um token, decodifica o JWT, recupera o ID em `sub`,
-busca novamente o usuário no banco e rejeita contas inativas. O handler retorna
+`obter_usuario_atual` exige um token de acesso, decodifica o JWT, valida a
+sessão em `sid`, recupera o ID em `sub`, busca novamente o usuário no banco e
+rejeita contas inativas. O handler retorna
 `UsuarioResposta`: ID, nome, CPF, vínculo institucional, e-mail, perfil global
 e situação ativa. Os perfis locais de espaço não alteram esse campo. Senha e
 hash nunca fazem parte desse esquema.
@@ -123,8 +153,10 @@ público e login não exigem autenticação.
   global e estado ativo. CPF, vínculo e e-mail têm restrições de unicidade.
 - O repositório copia dados para o modelo ORM, executa `commit` e `refresh`
   ao salvar.
-- `ativo` inicia como verdadeiro; não há caso de uso implementado neste
-  módulo para editar, desativar, reativar, excluir ou recuperar senha.
+- `ativo` inicia como verdadeiro; a alteração desse campo para falso revoga as
+  sessões existentes. O módulo ainda não oferece endpoints administrativos
+  para editar, desativar, reativar ou excluir usuários, nem fluxo de recuperação
+  de senha.
 - A listagem e a resposta pessoal incluem CPF, e-mail e vínculo; o esquema
   omite o hash de senha.
 - A inicialização migra perfis globais antigos para `Membro`; os antigos
@@ -144,9 +176,3 @@ público e login não exigem autenticação.
 - A verificação de unicidade é feita antes de persistir. Uma concorrência
   entre cadastros pode ainda resultar em erro de integridade do banco; não há
   conversão específica dessa falha no caso de uso.
-- A dependência HTTP chama a exceção de credenciais inválidas com mensagem
-  posicional para usuário inexistente/inativo, embora o construtor atual de
-  `CredenciaisInvalidasErro` não aceite argumento. Esses caminhos podem
-  resultar em `TypeError` em vez do HTTP pretendido.
-- A conversão do `sub` do token para inteiro ocorre fora do bloco que captura
-  erros de decodificação; `sub` não numérico pode propagar `ValueError`.
