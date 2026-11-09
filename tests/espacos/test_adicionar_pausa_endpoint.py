@@ -1,12 +1,13 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.espacos.conftest import payload_pausa
 
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR],
+    [PerfilUsuario.ADMINISTRADOR, PerfilEspaco.COORDENADOR],
 )
 def test_perfil_autorizado_adiciona_pausa(client, headers, espaco, perfil):
     resposta = client.post(
@@ -31,7 +32,7 @@ def test_adicionar_pausa_rejeita_requisicao_sem_token(client, espaco):
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.MONITOR, PerfilUsuario.SERVIDOR, PerfilUsuario.ALUNO],
+    [PerfilEspaco.MONITOR, PerfilUsuario.MEMBRO, PerfilUsuario.MEMBRO],
 )
 def test_adicionar_pausa_rejeita_perfil_sem_permissao(
     client, headers, espaco, perfil

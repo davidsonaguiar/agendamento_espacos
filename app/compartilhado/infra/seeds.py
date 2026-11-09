@@ -15,7 +15,9 @@ from app.modulos.espacos.infra.modelos import (
     EspacoHorarioFuncionamentoModelo,
     EspacoModelo,
     RecursoModelo,
+    EspacoUsuarioModelo,
 )
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from app.modulos.projetos.infra.modelos import (
     ProjetoModelo,
     ProjetoParticipanteModelo,
@@ -26,10 +28,10 @@ from app.modulos.usuarios.infra.modelos import UsuarioModelo
 def _criar_usuarios(db: Session, senha: str) -> dict[str, UsuarioModelo]:
     perfis = {
         "administrador": PerfilUsuario.ADMINISTRADOR,
-        "coordenador": PerfilUsuario.COORDENADOR,
-        "servidor": PerfilUsuario.SERVIDOR,
-        "monitor": PerfilUsuario.MONITOR,
-        "aluno": PerfilUsuario.ALUNO,
+        "coordenador": PerfilUsuario.MEMBRO,
+        "servidor": PerfilUsuario.MEMBRO,
+        "monitor": PerfilUsuario.MEMBRO,
+        "aluno": PerfilUsuario.MEMBRO,
     }
     codificador = CodificadorSenha()
     senha_codificada: str | None = None
@@ -114,10 +116,22 @@ def _criar_espacos(
                     )
                 )
 
-        for chave_usuario in ("administrador", "coordenador"):
+        for chave_usuario, perfil_espaco in (
+            ("coordenador", PerfilEspaco.COORDENADOR),
+            ("monitor", PerfilEspaco.MONITOR),
+        ):
             usuario = usuarios[chave_usuario]
-            if usuario not in espaco.usuarios_vinculados:
-                espaco.usuarios_vinculados.append(usuario)
+            vinculo = db.get(
+                EspacoUsuarioModelo, (espaco.id, usuario.id)
+            )
+            if vinculo is None:
+                db.add(
+                    EspacoUsuarioModelo(
+                        id_espaco=espaco.id,
+                        id_usuario=usuario.id,
+                        perfil_espaco=perfil_espaco.value,
+                    )
+                )
 
         recurso = db.scalar(
             select(RecursoModelo).where(

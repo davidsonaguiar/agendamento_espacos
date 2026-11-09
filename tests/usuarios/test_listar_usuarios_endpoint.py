@@ -1,28 +1,25 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
 
-def test_administrador_lista_usuarios(client, headers):
+def test_administrador_lista_usuarios(client, headers, usuarios):
     resposta = client.get(
         "/usuarios/",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
     )
 
     assert resposta.status_code == 200
-    assert len(resposta.json()) == len(PerfilUsuario)
+    assert len(resposta.json()) == len(usuarios)
 
 
-def test_coordenador_lista_usuarios(client, headers):
+def test_coordenador_nao_lista_usuarios_globalmente(client, headers):
     resposta = client.get(
-        "/usuarios/?perfil=Monitor&skip=0&limit=10",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        "/usuarios/",
+        headers=headers[PerfilEspaco.COORDENADOR],
     )
 
-    assert resposta.status_code == 200
-    assert all(
-        usuario["perfil"] == PerfilUsuario.MONITOR.value
-        for usuario in resposta.json()
-    )
+    assert resposta.status_code == 403
 
 
 def test_listar_usuarios_aplica_filtros_de_perfil_e_status(
@@ -31,20 +28,20 @@ def test_listar_usuarios_aplica_filtros_de_perfil_e_status(
     with test_session_factory() as db:
         servidor = (
             db.query(UsuarioModelo)
-            .filter(UsuarioModelo.id == usuarios[PerfilUsuario.SERVIDOR])
+            .filter(UsuarioModelo.id == usuarios[PerfilUsuario.MEMBRO])
             .one()
         )
         servidor.ativo = False
         db.commit()
 
     resposta = client.get(
-        "/usuarios/?perfil=Servidor&ativo=false",
+        "/usuarios/?perfil=Membro&ativo=false",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
     )
 
     assert resposta.status_code == 200
     assert len(resposta.json()) == 1
-    assert resposta.json()[0]["perfil"] == PerfilUsuario.SERVIDOR.value
+    assert resposta.json()[0]["perfil"] == PerfilUsuario.MEMBRO.value
     assert resposta.json()[0]["ativo"] is False
 
 
@@ -61,7 +58,7 @@ def test_listar_usuarios_aplica_paginacao(client, headers):
 def test_listar_usuarios_rejeita_perfil_sem_permissao(client, headers):
     resposta = client.get(
         "/usuarios/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 403

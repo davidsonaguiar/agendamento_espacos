@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def payload_projeto(id_responsavel: int, **overrides) -> dict:
@@ -16,7 +17,7 @@ def criar_projeto(
     client,
     headers,
     id_responsavel: int,
-    perfil_criador: PerfilUsuario = PerfilUsuario.ADMINISTRADOR,
+    perfil_criador: PerfilUsuario | PerfilEspaco = PerfilUsuario.ADMINISTRADOR,
     **overrides,
 ) -> dict:
     resposta = client.post(
@@ -33,6 +34,6 @@ def projeto(client, headers, usuarios):
     return criar_projeto(
         client,
         headers,
-        usuarios[PerfilUsuario.SERVIDOR],
-        perfil_criador=PerfilUsuario.SERVIDOR,
+        usuarios[PerfilEspaco.COORDENADOR],
+        perfil_criador=PerfilEspaco.COORDENADOR,
     )

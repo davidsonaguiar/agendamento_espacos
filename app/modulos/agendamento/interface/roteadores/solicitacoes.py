@@ -62,6 +62,9 @@ from app.modulos.agendamento.interface.esquemas import (
     SolicitacaoResposta,
     UrlAnexoResposta,
 )
+from app.modulos.agendamento.interface.seguranca import (
+    VerificarGestorSolicitacao,
+)
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 from app.modulos.usuarios.interface.seguranca_http import (
     VerificarPerfil,
@@ -69,10 +72,8 @@ from app.modulos.usuarios.interface.seguranca_http import (
 )
 
 roteador = APIRouter(prefix="/solicitacoes")
-apenas_servidor = VerificarPerfil([PerfilUsuario.SERVIDOR])
-gestores_solicitacao = VerificarPerfil(
-    [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR]
-)
+apenas_membro = VerificarPerfil([PerfilUsuario.MEMBRO])
+gestores_solicitacao = VerificarGestorSolicitacao()
 
 
 def _id_usuario_autenticado(usuario: Usuario) -> int:
@@ -85,11 +86,11 @@ def _id_usuario_autenticado(usuario: Usuario) -> int:
     "/",
     response_model=SolicitacaoResposta,
     status_code=status.HTTP_201_CREATED,
-    summary="Cadastrar uma solicitação (Servidor)",
+    summary="Cadastrar uma solicitação (Membro)",
 )
 def criar_solicitacao(
     dados: CriarSolicitacao,
-    usuario_logado: Annotated[Usuario, Depends(apenas_servidor)],
+    usuario_logado: Annotated[Usuario, Depends(apenas_membro)],
     caso_de_uso: Annotated[
         CriarSolicitacaoCasoDeUso,
         Depends(pegar_caso_de_uso_criar_solicitacao),
@@ -181,7 +182,7 @@ def solicitar_complementacao(
 def responder_complementacao(
     id_solicitacao: int,
     dados: MensagemSolicitacao,
-    usuario_logado: Annotated[Usuario, Depends(apenas_servidor)],
+    usuario_logado: Annotated[Usuario, Depends(apenas_membro)],
     caso_de_uso: Annotated[
         ResponderComplementacaoCasoDeUso,
         Depends(pegar_caso_de_uso_responder_complementacao),
@@ -235,7 +236,7 @@ def responder_proposta(
     id_solicitacao: int,
     id_interacao: int,
     dados: ResponderProposta,
-    usuario_logado: Annotated[Usuario, Depends(apenas_servidor)],
+    usuario_logado: Annotated[Usuario, Depends(apenas_membro)],
     caso_de_uso: Annotated[
         ResponderPropostaCasoDeUso,
         Depends(pegar_caso_de_uso_responder_proposta),
@@ -258,7 +259,7 @@ def responder_proposta(
 )
 def anexar_arquivo(
     id_solicitacao: int,
-    usuario_logado: Annotated[Usuario, Depends(apenas_servidor)],
+    usuario_logado: Annotated[Usuario, Depends(apenas_membro)],
     caso_de_uso: Annotated[
         AnexarArquivoSolicitacaoCasoDeUso,
         Depends(pegar_caso_de_uso_anexar_arquivo),

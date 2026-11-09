@@ -29,7 +29,7 @@ Todos os desenvolvedores da equipe devem seguir estas diretrizes obrigatórias a
 ### 1. Separação de Preocupações (Camadas)
 O sistema é dividido em módulos isolados, e cada módulo possui 4 camadas restritas:
 *   **Domínio (`dominio/`):** É o coração do software. Contém as entidades puras, as exceções de negócio e os **Contratos** (Interfaces Abstratas). **Regra de Ouro:** Esta camada *nunca* deve importar ferramentas externas (nada de FastAPI, SQLAlchemy ou bibliotecas de terceiros).
-*   **Casos de Uso (`casos_uso/`):** Orquestra o fluxo da aplicação (ex: `CadastrarServidorCasoDeUso`). Só pode importar arquivos do Domínio.
+*   **Casos de Uso (`casos_uso/`):** Orquestra o fluxo da aplicação (ex: `CadastrarUsuarioCasoDeUso`). Só pode importar arquivos do Domínio.
 *   **Infraestrutura (`infra/`):** Onde o sistema se conecta com o mundo externo. Aqui ficam os Modelos ORM, a conexão com o PostgreSQL, criptografia e integrações. Essas classes *implementam* os Contratos definidos no Domínio.
 *   **Interface (`interface/`):** A porta de entrada da aplicação. Lida exclusivamente com HTTP, validação de JSONs de entrada/saída (Schemas Pydantic) e injeção de dependências.
 
@@ -99,12 +99,12 @@ docs/
 
 ### Implementado
 
-* Cadastro, autenticação por CPF ou e-mail, consulta do usuário autenticado e listagem administrativa de usuários. Os perfis são Administrador, Coordenador, Servidor, Monitor e Aluno.
+* Cadastro, autenticação por CPF ou e-mail, consulta do usuário autenticado e listagem administrativa de usuários. Os perfis globais são Administrador e Membro; Coordenador e Monitor são atribuídos por espaço.
 * Cadastro e manutenção de espaços, recursos, horários de funcionamento, pausas e vínculos entre espaços e usuários. Recursos podem ser cadastrados, atualizados, listados por espaço e indisponibilizados sem exclusão física.
 * Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
-* A listagem e a consulta individual de projetos são filtradas por vínculo para Servidores e Alunos. Coordenadores, Administradores e Monitores podem consultar todos os projetos.
+* Membros criam projetos para si e consultam projetos em que são responsáveis ou participantes. Administradores podem consultar todos; perfis locais de Coordenador e Monitor não ampliam o acesso a projetos.
 * A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
-* Cadastro e acompanhamento de solicitações: Servidores criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores e Coordenadores consultam todos, podem gerar links temporários para anexos e decidir solicitações.
+* Cadastro e acompanhamento de solicitações: Membros criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores consultam todos, e Coordenadores podem consultar e decidir solicitações somente dos espaços em que atuam.
 * Consulta de disponibilidade e reservas confirmadas pelo módulo de agendamento; aprovações geram reservas oficiais na agenda.
 * Endpoint de verificação da API em `GET /`.
 
@@ -224,11 +224,16 @@ em uso.
    Crie também um bucket **privado** no Supabase Storage chamado `anexos-solicitacoes`, com limite de 153.600 bytes e os tipos PDF e DOCX permitidos. `SUPABASE_SERVICE_ROLE_KEY` deve ficar somente no ambiente seguro do backend; nunca a exponha no frontend ou no controle de versão. Para o schema de um banco existente, siga a migração descrita em [`docs/banco_dados.md`](docs/banco_dados.md#migração-no-supabase).
 
 6. **Crie as tabelas iniciais:**
-   Ao iniciar, a aplicação cria tabelas ausentes. A criação automática não altera tabelas existentes; o versionamento e as alterações do schema devem seguir o fluxo de migração do banco.
+   Ao iniciar, a aplicação cria tabelas ausentes e migra os perfis globais
+   antigos para `Administrador`/`Membro`, preservando Coordenador e Monitor
+   como perfis locais dos espaços. Essa migração não substitui o versionamento
+   geral do banco: outras alterações do schema devem seguir o fluxo de
+   migração documentado.
 
 7. **Popule o banco com dados de demonstração (opcional):**
-   O comando abaixo cria usuários para todos os perfis, espaços, recursos, um
-   projeto e solicitações de exemplo. A execução é idempotente e não acontece
+   O comando abaixo cria usuários Administrador e Membro, atribuições locais
+   de Coordenador e Monitor, espaços, recursos, um projeto e solicitações de
+   exemplo. A execução é idempotente e não acontece
    ao iniciar a aplicação. Use apenas em bancos de desenvolvimento ou teste.
    Defina `SEED_PASSWORD` no ambiente ou adicione essa variável ao arquivo
    `.env` na raiz do projeto:

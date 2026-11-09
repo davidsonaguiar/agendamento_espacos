@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.modulos.agendamento.infra.modelos import ReservaAgendaModelo
 from app.modulos.espacos.infra.modelos import EspacoHorarioFuncionamentoModelo
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.agendamento.conftest import criar_solicitacao
 
 
@@ -107,7 +108,7 @@ def test_decidir_solicitacao_nao_permite_decidir_duas_vezes(
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.SERVIDOR, PerfilUsuario.MONITOR],
+    [PerfilUsuario.MEMBRO, PerfilEspaco.MONITOR],
 )
 def test_decidir_solicitacao_requer_perfil_gestor(
     client, headers, espaco, perfil
@@ -176,7 +177,7 @@ def test_aprovacao_em_conflito_nao_cria_reserva_nem_altera_solicitacao(
         )
     obtida = client.get(
         f"/solicitacoes/{segunda['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
     assert obtida.status_code == 200
     assert obtida.json()["status"] == "Pendente"
@@ -187,7 +188,7 @@ def test_solicitar_complementacao_rejeita_solicitacao_inexistente(
 ):
     resposta = client.post(
         "/solicitacoes/99999/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": "Informe os equipamentos."},
     )
 
@@ -200,14 +201,14 @@ def test_solicitar_complementacao_nao_permite_estado_invalido(
     solicitacao = criar_solicitacao(client, headers, espaco["id"])
     pedido = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": "Informe os equipamentos."},
     )
     assert pedido.status_code == 200, pedido.text
 
     repetido = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": "Envie detalhes adicionais."},
     )
 
@@ -225,7 +226,7 @@ def test_solicitar_complementacao_rejeita_mensagem_invalida(
 
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": mensagem},
     )
 
@@ -237,7 +238,7 @@ def test_solicitar_complementacao_requer_perfil_gestor(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"mensagem": "Informe os equipamentos."},
     )
 
@@ -249,7 +250,7 @@ def test_responder_complementacao_rejeita_estado_invalido(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"mensagem": "Segue informação adicional."},
     )
 
@@ -262,7 +263,7 @@ def test_responder_complementacao_rejeita_usuario_diferente(
     solicitacao = criar_solicitacao(client, headers, espaco["id"])
     pedido = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": "Informe os equipamentos."},
     )
     assert pedido.status_code == 200, pedido.text
@@ -328,7 +329,7 @@ def test_propor_replanejamento_requer_perfil_gestor(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/propostas-replanejamento",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_proposta(data_futura()),
     )
 
@@ -344,7 +345,7 @@ def test_responder_proposta_rejeita_proposta_inexistente(
 
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/propostas-replanejamento/99999/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"aceita": False, "mensagem": "Não posso nesse horário."},
     )
     assert resposta.status_code == 404
@@ -374,7 +375,7 @@ def test_responder_proposta_rejeita_estado_sem_proposta_pendente(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/propostas-replanejamento/1/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"aceita": False, "mensagem": "Não posso nesse horário."},
     )
 

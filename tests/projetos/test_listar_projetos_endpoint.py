@@ -1,13 +1,14 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.projetos.conftest import criar_projeto
 
 
 def test_administrador_lista_todos_os_projetos(client, headers, usuarios):
     primeiro = criar_projeto(
-        client, headers, usuarios[PerfilUsuario.SERVIDOR]
+        client, headers, usuarios[PerfilUsuario.MEMBRO]
     )
     segundo = criar_projeto(
-        client, headers, usuarios[PerfilUsuario.SERVIDOR]
+        client, headers, usuarios[PerfilUsuario.MEMBRO]
     )
 
     resposta = client.get(
@@ -24,16 +25,16 @@ def test_servidor_lista_projetos_dos_quais_e_responsavel(client, headers, usuari
     projeto_responsavel = criar_projeto(
         client,
         headers,
-        usuarios[PerfilUsuario.SERVIDOR],
-        perfil_criador=PerfilUsuario.SERVIDOR,
+        usuarios[PerfilUsuario.MEMBRO],
+        perfil_criador=PerfilUsuario.MEMBRO,
     )
     projeto_de_outra_pessoa = criar_projeto(
-        client, headers, usuarios[PerfilUsuario.COORDENADOR]
+        client, headers, usuarios[PerfilEspaco.COORDENADOR]
     )
 
     resposta = client.get(
         "/projetos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
@@ -44,16 +45,16 @@ def test_servidor_lista_projetos_dos_quais_e_responsavel(client, headers, usuari
 
 def test_aluno_lista_projetos_dos_quais_participa(client, headers, usuarios):
     projeto_participante = criar_projeto(
-        client, headers, usuarios[PerfilUsuario.SERVIDOR]
+        client, headers, usuarios[PerfilEspaco.COORDENADOR]
     )
     projeto_sem_vinculo = criar_projeto(
-        client, headers, usuarios[PerfilUsuario.SERVIDOR]
+        client, headers, usuarios[PerfilEspaco.MONITOR]
     )
     adicionar = client.post(
         f"/projetos/{projeto_participante['id']}/participantes",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
         json={
-            "id_usuario": usuarios[PerfilUsuario.ALUNO],
+            "id_usuario": usuarios[PerfilUsuario.MEMBRO],
             "papel_no_projeto": "Estudante",
         },
     )
@@ -61,7 +62,7 @@ def test_aluno_lista_projetos_dos_quais_participa(client, headers, usuarios):
 
     resposta = client.get(
         "/projetos/",
-        headers=headers[PerfilUsuario.ALUNO],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200

@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def test_coordenador_atualiza_horario_de_funcionamento(
@@ -8,7 +9,7 @@ def test_coordenador_atualiza_horario_de_funcionamento(
 ):
     resposta = client.patch(
         f"/espacos/{espaco['id']}/horarios",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={
             "dia_semana": 1,
             "hora_abertura": "09:00",
@@ -36,7 +37,7 @@ def test_atualizar_horario_rejeita_requisicao_sem_token(client, espaco):
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.MONITOR, PerfilUsuario.SERVIDOR, PerfilUsuario.ALUNO],
+    [PerfilEspaco.MONITOR, PerfilUsuario.MEMBRO, PerfilUsuario.MEMBRO],
 )
 def test_atualizar_horario_rejeita_perfil_sem_permissao(
     client, headers, espaco, perfil

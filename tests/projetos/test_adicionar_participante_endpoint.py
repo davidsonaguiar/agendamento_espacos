@@ -1,4 +1,5 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def payload_participante(id_usuario: int, **overrides):
@@ -13,13 +14,13 @@ def test_responsavel_adiciona_participante(
 ):
     resposta = client.post(
         f"/projetos/{projeto['id']}/participantes",
-        headers=headers[PerfilUsuario.SERVIDOR],
-        json=payload_participante(usuarios[PerfilUsuario.MONITOR]),
+        headers=headers[PerfilEspaco.COORDENADOR],
+        json=payload_participante(usuarios[PerfilEspaco.MONITOR]),
     )
 
     assert resposta.status_code == 201
     assert any(
-        participante["id_usuario"] == usuarios[PerfilUsuario.MONITOR]
+        participante["id_usuario"] == usuarios[PerfilEspaco.MONITOR]
         for participante in resposta.json()["participantes"]
     )
 
@@ -30,7 +31,7 @@ def test_administrador_adiciona_participante(
     resposta = client.post(
         f"/projetos/{projeto['id']}/participantes",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
-        json=payload_participante(usuarios[PerfilUsuario.MONITOR]),
+        json=payload_participante(usuarios[PerfilEspaco.MONITOR]),
     )
 
     assert resposta.status_code == 201
@@ -41,8 +42,8 @@ def test_usuario_que_nao_e_responsavel_nao_adiciona_participante(
 ):
     resposta = client.post(
         f"/projetos/{projeto['id']}/participantes",
-        headers=headers[PerfilUsuario.COORDENADOR],
-        json=payload_participante(usuarios[PerfilUsuario.MONITOR]),
+        headers=headers[PerfilUsuario.MEMBRO],
+        json=payload_participante(usuarios[PerfilEspaco.MONITOR]),
     )
 
     assert resposta.status_code == 403
@@ -63,7 +64,7 @@ def test_adicionar_participante_rejeita_usuario_inexistente(
 def test_adicionar_participante_duplicado_retorna_conflito(
     client, headers, usuarios, projeto
 ):
-    dados = payload_participante(usuarios[PerfilUsuario.MONITOR])
+    dados = payload_participante(usuarios[PerfilEspaco.MONITOR])
     primeira = client.post(
         f"/projetos/{projeto['id']}/participantes",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
@@ -85,7 +86,7 @@ def test_adicionar_participante_rejeita_projeto_inexistente(
     resposta = client.post(
         "/projetos/99999/participantes",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
-        json=payload_participante(usuarios[PerfilUsuario.MONITOR]),
+        json=payload_participante(usuarios[PerfilEspaco.MONITOR]),
     )
 
     assert resposta.status_code == 404
@@ -108,7 +109,7 @@ def test_adicionar_participante_rejeita_requisicao_sem_token(
 ):
     resposta = client.post(
         f"/projetos/{projeto['id']}/participantes",
-        json=payload_participante(usuarios[PerfilUsuario.MONITOR]),
+        json=payload_participante(usuarios[PerfilEspaco.MONITOR]),
     )
 
     assert resposta.status_code == 401

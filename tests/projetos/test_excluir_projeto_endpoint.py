@@ -1,4 +1,5 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.projetos.conftest import criar_projeto
 
 
@@ -6,13 +7,13 @@ def test_criador_exclui_projeto(client, headers, usuarios):
     projeto = criar_projeto(
         client,
         headers,
-        usuarios[PerfilUsuario.SERVIDOR],
-        perfil_criador=PerfilUsuario.SERVIDOR,
+        usuarios[PerfilUsuario.MEMBRO],
+        perfil_criador=PerfilUsuario.MEMBRO,
     )
 
     resposta = client.delete(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 204
@@ -33,7 +34,7 @@ def test_usuario_que_nao_e_criador_nao_exclui_projeto(
 ):
     resposta = client.delete(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 403

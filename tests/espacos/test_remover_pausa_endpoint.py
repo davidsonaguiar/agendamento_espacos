@@ -1,11 +1,12 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR],
+    [PerfilUsuario.ADMINISTRADOR, PerfilEspaco.COORDENADOR],
 )
 def test_perfil_autorizado_remove_pausa(
     client, headers, espaco, pausa, perfil
@@ -30,7 +31,7 @@ def test_remover_pausa_rejeita_requisicao_sem_token(
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.MONITOR, PerfilUsuario.SERVIDOR, PerfilUsuario.ALUNO],
+    [PerfilEspaco.MONITOR, PerfilUsuario.MEMBRO, PerfilUsuario.MEMBRO],
 )
 def test_remover_pausa_rejeita_perfil_sem_permissao(
     client, headers, espaco, pausa, perfil

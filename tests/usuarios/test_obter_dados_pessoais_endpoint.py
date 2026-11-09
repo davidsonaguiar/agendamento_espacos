@@ -4,12 +4,12 @@ from app.modulos.usuarios.dominio.entidades import PerfilUsuario
 def test_obter_dados_pessoais_com_token_valido(client, headers, usuarios):
     resposta = client.get(
         "/usuarios/me",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
-    assert resposta.json()["id"] == usuarios[PerfilUsuario.SERVIDOR]
-    assert resposta.json()["perfil"] == PerfilUsuario.SERVIDOR.value
+    assert resposta.json()["id"] == usuarios[PerfilUsuario.MEMBRO]
+    assert resposta.json()["perfil"] == PerfilUsuario.MEMBRO.value
     assert "senha_codificada" not in resposta.json()
 
 

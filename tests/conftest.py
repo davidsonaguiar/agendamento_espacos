@@ -23,6 +23,8 @@ from app.modulos.agendamento.interface.dependencias import (
 )
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
+from app.modulos.espacos.infra.repositorios import EspacoRepositorio
 from main import app
 
 
@@ -90,6 +92,7 @@ def client(
         return ObterUrlAnexoCasoDeUso(
             SolicitacaoRepositorio(db),
             fake_storage,
+            EspacoRepositorio(db),
         )
 
     app.router.lifespan_context = no_lifespan
@@ -112,27 +115,32 @@ def client(
 @pytest.fixture
 def usuarios(
     test_session_factory: sessionmaker[Session],
-) -> dict[PerfilUsuario, int]:
+) -> dict[PerfilUsuario | PerfilEspaco, int]:
     senha_codificada = CodificadorSenha().codificar_senha("SenhaValida123!")
-    perfis = list(PerfilUsuario)
+    perfis = [
+        (PerfilUsuario.ADMINISTRADOR, PerfilUsuario.ADMINISTRADOR),
+        (PerfilUsuario.MEMBRO, PerfilUsuario.MEMBRO),
+        (PerfilEspaco.COORDENADOR, PerfilUsuario.MEMBRO),
+        (PerfilEspaco.MONITOR, PerfilUsuario.MEMBRO),
+    ]
     with test_session_factory() as db:
         registros = [
             UsuarioModelo(
-                nome_completo=f"Usuário {perfil.value}",
+                nome_completo=f"Usuário {ator.value}",
                 cpf=f"{index:011d}",
                 vinculo_institucional=f"MAT{index:05d}",
-                email=f"{perfil.name.lower()}@example.com",
+                email=f"{ator.name.lower()}@example.com",
                 senha_codificada=senha_codificada,
-                perfil=perfil,
+                perfil=papel_global,
                 ativo=True,
             )
-            for index, perfil in enumerate(perfis, start=1)
+            for index, (ator, papel_global) in enumerate(perfis, start=1)
         ]
         db.add_all(registros)
         db.commit()
         return {
-            registro.perfil: registro.id
-            for registro in registros
+            ator: registro.id
+            for (ator, _), registro in zip(perfis, registros, strict=True)
         }
 
 
@@ -144,7 +152,7 @@ def cabecalhos_autenticacao(id_usuario: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def headers(usuarios: dict[PerfilUsuario, int]):
+def headers(usuarios: dict[PerfilUsuario | PerfilEspaco, int]):
     return {
         perfil: cabecalhos_autenticacao(id_usuario)
         for perfil, id_usuario in usuarios.items()

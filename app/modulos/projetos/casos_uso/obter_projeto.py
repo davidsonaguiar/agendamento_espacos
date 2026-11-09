@@ -9,12 +9,12 @@ class ObterProjetoCasoDeUso:
         self.repositorio = repositorio
 
     def executar(self, id_projeto: int, usuario: Usuario) -> Projeto:
-        if usuario.perfil in {PerfilUsuario.SERVIDOR, PerfilUsuario.ALUNO}:
+        if usuario.perfil == PerfilUsuario.MEMBRO:
             projeto = (
                 self.repositorio.buscar_por_id_vinculado(
                     id_projeto,
                     usuario.id,
-                    incluir_responsabilidade=usuario.perfil == PerfilUsuario.SERVIDOR,
+                    incluir_responsabilidade=True,
                 )
                 if usuario.id is not None
                 else None

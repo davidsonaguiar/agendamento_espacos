@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def payload_espaco(nome="Espaço de teste", **overrides):
@@ -56,7 +57,7 @@ def payload_pausa(**overrides):
     } | overrides
 
 
-def criar_pausa(client, headers, id_espaco, perfil=PerfilUsuario.COORDENADOR):
+def criar_pausa(client, headers, id_espaco, perfil=PerfilEspaco.COORDENADOR):
     resposta = client.post(
         f"/espacos/{id_espaco}/pausas",
         headers=headers[perfil],
@@ -67,8 +68,15 @@ def criar_pausa(client, headers, id_espaco, perfil=PerfilUsuario.COORDENADOR):
 
 
 @pytest.fixture
-def espaco(client, headers):
-    return criar_espaco(client, headers)
+def espaco(client, headers, usuarios):
+    espaco = criar_espaco(client, headers)
+    resposta = client.post(
+        f"/espacos/{espaco['id']}/usuarios/{usuarios[PerfilEspaco.COORDENADOR]}",
+        headers=headers[PerfilUsuario.ADMINISTRADOR],
+        json={"perfil_espaco": PerfilEspaco.COORDENADOR.value},
+    )
+    assert resposta.status_code == 201, resposta.text
+    return espaco
 
 
 @pytest.fixture

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.modulos.agendamento.infra.modelos import ReservaAgendaModelo
 from app.modulos.espacos.infra.modelos import EspacoHorarioFuncionamentoModelo
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.agendamento.conftest import criar_solicitacao
 from tests.espacos.conftest import payload_recurso
 
@@ -60,7 +61,7 @@ def test_consultar_horarios_disponiveis_considera_reservas(
 
     resposta = client.get(
         "/agendamentos/horarios-disponiveis",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_inicio": data.isoformat(),
@@ -82,7 +83,7 @@ def test_fluxo_de_complementacao_preserva_historico(
 
     pedido = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"mensagem": "Informe os equipamentos necessários."},
     )
     assert pedido.status_code == 200, pedido.text
@@ -90,7 +91,7 @@ def test_fluxo_de_complementacao_preserva_historico(
 
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/complementacao/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"mensagem": "Será utilizado um projetor."},
     )
     assert resposta.status_code == 200, resposta.text
@@ -130,7 +131,7 @@ def test_aceitar_proposta_aprova_e_vincula_recurso(
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/propostas-replanejamento/"
         f"{interacao['id']}/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"aceita": True, "mensagem": "Aceito a nova data."},
     )
     assert resposta.status_code == 200, resposta.text
@@ -145,7 +146,7 @@ def test_aceitar_proposta_aprova_e_vincula_recurso(
 
     reservas = client.get(
         "/agendamentos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "data_hora_inicio": f"{data.isoformat()}T00:00:00",
             "data_hora_fim": f"{(data + timedelta(days=1)).isoformat()}T00:00:00",
@@ -177,7 +178,7 @@ def test_recusar_proposta_retorna_solicitacao_a_pendente(
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/propostas-replanejamento/"
         f"{interacao['id']}/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"aceita": False, "mensagem": "Esse horário não funciona."},
     )
 

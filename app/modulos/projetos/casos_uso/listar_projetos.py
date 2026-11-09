@@ -8,11 +8,11 @@ class ListarProjetosCasoDeUso:
         self.repositorio = repositorio
 
     def executar(self, usuario: Usuario) -> list[Projeto]:
-        if usuario.perfil in {PerfilUsuario.SERVIDOR, PerfilUsuario.ALUNO}:
+        if usuario.perfil == PerfilUsuario.MEMBRO:
             if usuario.id is None:
                 return []
             return self.repositorio.buscar_vinculados_a_usuario(
                 usuario.id,
-                incluir_responsabilidade=usuario.perfil == PerfilUsuario.SERVIDOR,
+                incluir_responsabilidade=True,
             )
         return self.repositorio.buscar_todos()

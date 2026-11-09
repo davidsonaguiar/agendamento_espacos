@@ -5,7 +5,7 @@ def test_login_com_email_e_senha_validos(client, usuarios):
     resposta = client.post(
         "/usuarios/login",
         json={
-            "identificacao": "servidor@example.com",
+            "identificacao": "membro@example.com",
             "senha": "SenhaValida123!",
         },
     )
@@ -14,7 +14,7 @@ def test_login_com_email_e_senha_validos(client, usuarios):
     corpo = resposta.json()
     assert corpo["access_token"]
     assert corpo["token_type"] == "bearer"
-    assert corpo["usuario"]["perfil"] == PerfilUsuario.SERVIDOR.value
+    assert corpo["usuario"]["perfil"] == PerfilUsuario.MEMBRO.value
     assert "senha_codificada" not in corpo["usuario"]
 
 
@@ -35,7 +35,7 @@ def test_login_rejeita_senha_incorreta(client):
     resposta = client.post(
         "/usuarios/login",
         json={
-            "identificacao": "servidor@example.com",
+            "identificacao": "membro@example.com",
             "senha": "SenhaErrada123!",
         },
     )
@@ -58,7 +58,7 @@ def test_login_rejeita_identificacao_inexistente(client):
 def test_login_rejeita_payload_incompleto(client):
     resposta = client.post(
         "/usuarios/login",
-        json={"identificacao": "servidor@example.com"},
+        json={"identificacao": "membro@example.com"},
     )
 
     assert resposta.status_code == 422

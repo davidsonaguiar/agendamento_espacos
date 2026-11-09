@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.espacos.conftest import payload_espaco
 
 
@@ -25,10 +26,10 @@ def test_criar_espaco_rejeita_requisicao_sem_token(client):
 @pytest.mark.parametrize(
     "perfil",
     [
-        PerfilUsuario.COORDENADOR,
-        PerfilUsuario.MONITOR,
-        PerfilUsuario.SERVIDOR,
-        PerfilUsuario.ALUNO,
+        PerfilEspaco.COORDENADOR,
+        PerfilEspaco.MONITOR,
+        PerfilUsuario.MEMBRO,
+        PerfilUsuario.MEMBRO,
     ],
 )
 def test_criar_espaco_rejeita_perfil_sem_permissao(client, headers, perfil):

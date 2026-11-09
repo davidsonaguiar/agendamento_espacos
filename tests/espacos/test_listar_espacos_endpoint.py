@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.espacos.conftest import criar_espaco
 
 
@@ -22,7 +23,7 @@ def test_servidor_lista_somente_espacos_ativos(
 ):
     resposta = client.get(
         "/espacos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
@@ -33,7 +34,7 @@ def test_servidor_lista_somente_espacos_ativos(
 
 @pytest.mark.parametrize(
     "perfil",
-    [PerfilUsuario.COORDENADOR, PerfilUsuario.MONITOR],
+    [PerfilEspaco.COORDENADOR, PerfilEspaco.MONITOR],
 )
 def test_usuario_vinculado_lista_espacos(
     client, headers, usuarios, perfil
@@ -42,6 +43,7 @@ def test_usuario_vinculado_lista_espacos(
     vincular = client.post(
         f"/espacos/{espaco['id']}/usuarios/{usuarios[perfil]}",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
+        json={"perfil_espaco": perfil.value},
     )
     assert vincular.status_code == 201
 

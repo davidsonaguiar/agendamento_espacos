@@ -9,7 +9,7 @@ junto às reservas confirmadas.
 
 ### Criar solicitação
 
-- Somente um usuário autenticado com perfil `Servidor` pode cadastrar.
+- Qualquer usuário autenticado com perfil global `Membro` pode cadastrar.
 - O solicitante é obtido do token; não pode ser informado no corpo.
 - O usuário pode reservar um espaço, adicionar recursos desse espaço à reserva,
   ou reservar somente um ou mais recursos com reserva independente habilitada.
@@ -33,8 +33,10 @@ junto às reservas confirmadas.
 
 ### Analisar e decidir
 
-- Somente `Administrador` e `Coordenador` podem decidir solicitações
-  pendentes.
+- `Administrador` pode decidir solicitações de qualquer espaço. Um
+  `Coordenador` pode decidir solicitações somente dos espaços em que está
+  vinculado como Coordenador. O perfil `Monitor` não concede permissão para
+  decidir solicitações.
 - A decisão deve ser `Aprovado` ou `Rejeitado` e incluir justificativa com ao
   menos três caracteres.
 - Ao aprovar, a aplicação revalida os horários contra o funcionamento do
@@ -51,8 +53,10 @@ junto às reservas confirmadas.
 
 ### Listar, consultar e cancelar
 
-- `Administrador` e `Coordenador` podem consultar todas as solicitações.
-- Os demais perfis autenticados consultam somente as solicitações que abriram.
+- `Administrador` pode consultar todas as solicitações. Um `Coordenador` pode
+  consultar as solicitações dos espaços em que atua como Coordenador.
+- Os demais Membros autenticados consultam somente as solicitações que
+  abriram.
 - O criador ou um `Administrador` pode cancelar uma solicitação pendente.
   Coordenadores e outros usuários não podem cancelar pedidos de terceiros.
 - O cancelamento preserva a solicitação e seus dados, alterando o estado para
@@ -60,14 +64,14 @@ junto às reservas confirmadas.
 
 ### Anexos
 
-- Somente o `Servidor` que abriu a solicitação pode enviar anexos.
+- Somente o `Membro` que abriu a solicitação pode enviar anexos.
 - Cada chamada aceita um arquivo PDF ou DOCX de até 150 KiB (153.600 bytes).
 - A API valida a extensão e a estrutura do arquivo. O objeto é enviado ao
   bucket privado do Supabase Storage; apenas os metadados e o caminho interno
   são armazenados no banco.
-- O solicitante, Administrador ou Coordenador pode solicitar um link de
-  download temporário, válido por 10 minutos. A API não expõe URL pública
-  permanente.
+- O solicitante, um Administrador ou um Coordenador do espaço da solicitação
+  pode solicitar um link de download temporário, válido por 10 minutos. A API
+  não expõe URL pública permanente.
 
 ## Agenda
 
@@ -113,8 +117,8 @@ espaço e conflitos dos recursos selecionados. A consulta é limitada a 31 dias.
 ### Complementação e proposta de replanejamento
 
 - `POST /solicitacoes/{id_solicitacao}/complementacao`: Administrador ou
-  Coordenador registra um pedido de complementação; a solicitação aguarda a
-  resposta do solicitante.
+  Coordenador do espaço da solicitação registra um pedido de complementação;
+  a solicitação aguarda a resposta do solicitante.
 - `POST /solicitacoes/{id_solicitacao}/complementacao/resposta`: o solicitante
   responde e a solicitação retorna a `Pendente`.
 - `POST /solicitacoes/{id_solicitacao}/propostas-replanejamento`: o gestor
@@ -134,20 +138,20 @@ quando uma solicitação é aprovada.
 
 | Método | Rota | Acesso |
 |---|---|---|
-| `POST` | `/solicitacoes/` | Servidor |
-| `GET` | `/solicitacoes/` | Usuário autenticado; resultados conforme perfil |
-| `PATCH` | `/solicitacoes/{id_solicitacao}/decisao` | Administrador ou Coordenador |
-| `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador |
+| `POST` | `/solicitacoes/` | Membro |
+| `GET` | `/solicitacoes/` | Usuário autenticado; resultados conforme perfil e espaços coordenados |
+| `PATCH` | `/solicitacoes/{id_solicitacao}/decisao` | Administrador ou Coordenador do espaço |
+| `GET` | `/solicitacoes/{id_solicitacao}` | Solicitante, Administrador ou Coordenador do espaço |
 | `PATCH` | `/solicitacoes/{id_solicitacao}` | Criador ou Administrador |
-| `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Servidor solicitante |
-| `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador |
+| `POST` | `/solicitacoes/{id_solicitacao}/anexos` | Membro solicitante |
+| `GET` | `/solicitacoes/{id_solicitacao}/anexos/{id_anexo}/url` | Solicitante, Administrador ou Coordenador do espaço |
 | `GET` | `/agendamentos/disponibilidade` | Usuário autenticado |
 | `GET` | `/agendamentos/` | Usuário autenticado |
 | `GET` | `/agendamentos/horarios-disponiveis` | Usuário autenticado |
-| `POST` | `/solicitacoes/{id_solicitacao}/complementacao` | Administrador ou Coordenador |
-| `POST` | `/solicitacoes/{id_solicitacao}/complementacao/resposta` | Servidor solicitante |
-| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento` | Administrador ou Coordenador |
-| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento/{id_interacao}/resposta` | Servidor solicitante |
+| `POST` | `/solicitacoes/{id_solicitacao}/complementacao` | Administrador ou Coordenador do espaço |
+| `POST` | `/solicitacoes/{id_solicitacao}/complementacao/resposta` | Membro solicitante |
+| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento` | Administrador ou Coordenador do espaço |
+| `POST` | `/solicitacoes/{id_solicitacao}/propostas-replanejamento/{id_interacao}/resposta` | Membro solicitante |
 
 Exemplo de corpo para decidir uma solicitação:
 

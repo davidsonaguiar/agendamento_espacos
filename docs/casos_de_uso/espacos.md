@@ -22,22 +22,25 @@ passadas também são incluídas.
 | Cadastrar | `POST /espacos/` | Administrador | 201, `EspacoResposta` |
 | Listar | `GET /espacos/` | Autenticado | 200, lista de `EspacoResposta` |
 | Desativar | `DELETE /espacos/{id_espaco}` | Administrador | 200, `EspacoResposta` |
-| Atualizar dados | `PUT /espacos/{id_espaco}` | Administrador ou Coordenador | 200, `EspacoResposta` |
+| Atualizar dados | `PUT /espacos/{id_espaco}` | Administrador ou Coordenador daquele espaço | 200, `EspacoResposta` |
 | Reativar | `PATCH /espacos/{id_espaco}/reativar` | Administrador | 200, `EspacoResposta` |
-| Atualizar horário | `PATCH /espacos/{id_espaco}/horarios` | Administrador ou Coordenador | 200 |
+| Atualizar horário | `PATCH /espacos/{id_espaco}/horarios` | Administrador ou Coordenador daquele espaço | 200 |
 | Consultar horários | `GET /espacos/{id_espaco}/horarios` | Autenticado | 200, lista de `HorarioFuncionamentoResposta` |
-| Vincular usuário | `POST /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador | 201 |
-| Desvincular usuário | `DELETE /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador | 200 |
-| Adicionar pausa | `POST /espacos/{id_espaco}/pausas` | Administrador ou Coordenador | 201, `PausaResposta` |
+| Listar membros disponíveis | `GET /espacos/{id_espaco}/usuarios/disponiveis` | Administrador ou Coordenador daquele espaço | 200, lista |
+| Vincular usuário | `POST /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador daquele espaço (este só pode atribuir Monitor) | 201 |
+| Desvincular usuário | `DELETE /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador daquele espaço (este só pode remover Monitor) | 200 |
+| Adicionar pausa | `POST /espacos/{id_espaco}/pausas` | Administrador ou Coordenador daquele espaço | 201, `PausaResposta` |
 | Listar pausas | `GET /espacos/{id_espaco}/pausas` | Autenticado | 200, lista de `PausaResposta` |
-| Remover pausa | `DELETE /espacos/{id_espaco}/pausas/{id_pausa}` | Administrador ou Coordenador | 200 |
-| Cadastrar recurso | `POST /espacos/{id_espaco}/recursos` | Administrador ou Coordenador | 201, `RecursoResposta` |
+| Remover pausa | `DELETE /espacos/{id_espaco}/pausas/{id_pausa}` | Administrador ou Coordenador daquele espaço | 200 |
+| Cadastrar recurso | `POST /espacos/{id_espaco}/recursos` | Administrador ou Coordenador daquele espaço | 201, `RecursoResposta` |
 | Listar recursos | `GET /espacos/{id_espaco}/recursos` | Autenticado | 200, lista paginada de `RecursoResposta` |
-| Atualizar recurso | `PUT /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador | 200, `RecursoResposta` |
-| Indisponibilizar recurso | `DELETE /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador | 200, `RecursoResposta` |
+| Atualizar recurso | `PUT /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador daquele espaço | 200, `RecursoResposta` |
+| Indisponibilizar recurso | `DELETE /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador daquele espaço | 200, `RecursoResposta` |
 
-Os endpoints protegidos carregam o usuário autenticado e verificam perfis na
-camada HTTP. Respostas de horário, vínculo e remoção de pausa não declaram
+Os endpoints protegidos carregam o usuário autenticado e verificam o perfil
+local do espaço na camada HTTP. Administradores têm acesso global; a função
+de Coordenador só vale no espaço ao qual o usuário está vinculado. Respostas
+de horário, vínculo e remoção de pausa não declaram
 `response_model`; seus corpos vêm diretamente dos valores retornados pelo
 caso de uso.
 
@@ -47,9 +50,11 @@ caso de uso.
 
 - **Cadastrar:** exige que o espaço exista e associa o novo recurso a ele.
 - **Listar:** exige espaço existente e aceita `skip` (mínimo 0, padrão 0) e
-  `limit` (1–100, padrão 100). Administradores, Coordenadores e Monitores
-  podem ver todos os recursos, inclusive os indisponíveis. Os demais perfis
-  autenticados veem somente os recursos disponíveis. Os resultados vêm em
+  `limit` (1–100, padrão 100). Administradores podem ver todos os recursos,
+  inclusive os indisponíveis, em qualquer espaço. Coordenadores e Monitores
+  veem também recursos indisponíveis somente no espaço em que têm o perfil
+  local correspondente. Os demais Membros autenticados veem somente os
+  recursos disponíveis. Os resultados vêm em
   ordem de ID e incluem em `reservas` as reservas confirmadas associadas ao
   recurso.
 - **Atualizar:** exige recurso pertencente ao espaço informado; atualiza nome,
@@ -60,8 +65,8 @@ caso de uso.
 Nome e tipo aceitam entre 1 e 100 caracteres. Atualizações precisam informar ao
 menos um campo; campos nulos são rejeitados. Espaço ou recurso inexistente,
 assim como recurso associado a outro espaço, resulta em 404. Administradores
-ou Coordenadores podem cadastrar, atualizar e indisponibilizar recursos; a
-listagem exige autenticação.
+ou Coordenadores daquele espaço podem cadastrar, atualizar e indisponibilizar
+recursos; a listagem exige autenticação.
 
 ## Cadastro de espaço
 
@@ -91,9 +96,8 @@ Aceita `skip` (mínimo 0, padrão 0) e `limit` (1–100, padrão 100). A saída 
 uma lista simples, sem total:
 
 - Administrador: todos os espaços, ativos ou desativados.
-- Servidor: somente espaços disponíveis/ativos.
-- Coordenador ou Monitor: somente espaços vinculados ao usuário.
-- Outros perfis autenticados: lista vazia.
+- Membro: todos os espaços disponíveis/ativos. Os perfis locais de
+  Coordenador e Monitor não alteram essa listagem.
 
 O repositório aplica os filtros e limites, sem ordenar explicitamente os
 resultados. Cada item inclui `reservas` confirmadas do espaço; as reservas
@@ -148,18 +152,22 @@ regras e os dados mantidos pelo módulo de espaços. Veja
 
 **Caso de uso:** `GerenciarVinculosCasoDeUso`.
 
-- Vincular: verifica existência do espaço e do usuário, valida perfil-alvo,
-  rejeita associação duplicada e associa usuário e espaço.
-- Desvincular: verifica existência do espaço e do usuário, exige associação
-  existente e a remove.
-- Os perfis aceitos como alvo no caso de uso são Administrador, Coordenador
-  e Monitor.
-- As respostas de sucesso são dicionários com uma mensagem descritiva.
-
-O handler exige Administrador ou Coordenador como solicitante. O caso de uso
-não recebe a identidade do solicitante e não limita quais espaços um
-Coordenador pode administrar. A mensagem de erro sobre perfis-alvo menciona
-Coordenador ou Monitor, mas a regra implementada também aceita Administrador.
+- O vínculo associa um Membro a um espaço com exatamente um perfil local:
+  `Coordenador` ou `Monitor`. O mesmo membro pode ter perfil local diferente
+  em outros espaços.
+- Administradores podem atribuir ou remover qualquer um dos dois perfis em
+  qualquer espaço. Coordenadores podem atribuir e remover somente Monitores
+  no próprio espaço; somente um Administrador pode atribuir ou remover
+  Coordenadores.
+- Não é permitido criar um segundo vínculo/perfil para a mesma pessoa no
+  mesmo espaço. Administradores não precisam de vínculo local para operar.
+- `GET /espacos/{id_espaco}/usuarios/disponiveis` lista membros ativos que
+  ainda não estão vinculados àquele espaço.
+- O corpo de `POST /espacos/{id_espaco}/usuarios/{id_usuario}` informa
+  `perfil_espaco`, com valor `Coordenador` ou `Monitor`.
+- Espaço ou usuário inexistente, vínculo duplicado ou perfil-alvo não
+  permitido gera erro; operações bem-sucedidas retornam uma mensagem
+  descritiva.
 
 ## Gerenciar pausas
 

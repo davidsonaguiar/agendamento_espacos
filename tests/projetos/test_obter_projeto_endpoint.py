@@ -1,21 +1,23 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.projetos.conftest import criar_projeto
 
 
-def test_obter_projeto_com_perfil_de_gestao(client, headers, projeto):
+def test_coordenador_nao_tem_acesso_global_a_projetos(
+    client, headers, projeto
+):
     resposta = client.get(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.MONITOR],
     )
 
-    assert resposta.status_code == 200
-    assert resposta.json()["id"] == projeto["id"]
+    assert resposta.status_code == 404
 
 
 def test_servidor_obtem_projeto_quando_e_responsavel(client, headers, projeto):
     resposta = client.get(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
     )
 
     assert resposta.status_code == 200
@@ -29,7 +31,7 @@ def test_aluno_obtem_projeto_quando_e_participante(
         f"/projetos/{projeto['id']}/participantes",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
         json={
-            "id_usuario": usuarios[PerfilUsuario.ALUNO],
+            "id_usuario": usuarios[PerfilUsuario.MEMBRO],
             "papel_no_projeto": "Estudante",
         },
     )
@@ -37,7 +39,7 @@ def test_aluno_obtem_projeto_quando_e_participante(
 
     resposta = client.get(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.ALUNO],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
@@ -47,7 +49,7 @@ def test_aluno_obtem_projeto_quando_e_participante(
 def test_aluno_sem_vinculo_nao_obtem_projeto(client, headers, projeto):
     resposta = client.get(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.ALUNO],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
     assert resposta.status_code == 404
 

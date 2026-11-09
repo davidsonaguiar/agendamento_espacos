@@ -93,6 +93,26 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         )
         return [self._converter(modelo) for modelo in modelos]
 
+    def buscar_por_espacos(self, ids_espacos: list[int]) -> list[Solicitacao]:
+        if not ids_espacos:
+            return []
+        modelos = (
+            self.db.query(SolicitacaoModelo)
+            .options(
+                joinedload(SolicitacaoModelo.projeto),
+                joinedload(SolicitacaoModelo.espaco),
+                joinedload(SolicitacaoModelo.solicitante),
+                selectinload(SolicitacaoModelo.usuarios_envolvidos),
+                selectinload(SolicitacaoModelo.horarios),
+                selectinload(SolicitacaoModelo.anexos),
+                selectinload(SolicitacaoModelo.recursos),
+                selectinload(SolicitacaoModelo.interacoes),
+            )
+            .filter(SolicitacaoModelo.id_espaco.in_(ids_espacos))
+            .all()
+        )
+        return [self._converter(modelo) for modelo in modelos]
+
     def salvar(self, solicitacao: Solicitacao) -> Solicitacao:
         ids_usuarios = [
             usuario.id_usuario for usuario in solicitacao.usuarios_envolvidos

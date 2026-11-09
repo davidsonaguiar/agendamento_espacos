@@ -32,7 +32,7 @@ def solicitar_recurso_independente(
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={
             "finalidade": "Utilização independente de recurso",
             "id_espaco": None,
@@ -109,11 +109,11 @@ def test_listas_de_espacos_e_recursos_incluem_reservas_associadas(
 
     espacos = client.get(
         "/espacos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
     recursos = client.get(
         f"/espacos/{espaco['id']}/recursos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert espacos.status_code == 200, espacos.text

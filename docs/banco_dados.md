@@ -19,7 +19,7 @@ erDiagram
         string vinculo_institucional
         string email
         string senha_codificada
-        string perfil
+        string perfil "Administrador ou Membro"
         boolean ativo
     }
 
@@ -51,6 +51,7 @@ erDiagram
     ESPACO_USUARIO {
         int id_espaco PK, FK
         int id_usuario PK, FK
+        string perfil_espaco "Coordenador ou Monitor; nulo para vínculo administrativo"
     }
 
     ESPACO_HORARIO_FUNCIONAMENTO {
@@ -185,8 +186,8 @@ erDiagram
 #### Tabela: `USUARIO`
 *   **Justificativa:** Atende ao RF-01 (Autenticação e acesso por perfil) e RF-02 (Cadastro de solicitante). Responsável por gerenciar os atores do sistema.
 *   **Atributos:**
-    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados obrigatórios para identificação formal do servidor/aluno no IFAL.
-    *   `perfil`: Define autorizações do usuário (Coordenador, Servidor Solicitante, Monitor).
+    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados de identificação institucional do Membro.
+    *   `perfil`: Define o papel global (`Administrador` ou `Membro`). Coordenador e Monitor são papéis locais armazenados em `ESPACO_USUARIO.perfil_espaco`.
 
 #### Tabela: `PROJETO`
 *   **Justificativa:** Atende ao RF-04, registrando o contexto que motiva o uso do laboratório (pesquisa, extensão, disciplina).
@@ -210,8 +211,9 @@ erDiagram
 *   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade inteira, bloco de até 50 caracteres e disponibilidade booleana.
 
 #### Tabela associativa: `ESPACO_USUARIO`
+*   **Atributos:** `id_espaco`, `id_usuario` e `perfil_espaco`. O par espaço/usuário é único; cada Membro pode ter no máximo um perfil local por espaço (`Coordenador` ou `Monitor`). Um usuário pode exercer papéis diferentes em espaços diferentes. Administradores têm acesso global e não dependem de vínculo local; vínculos administrativos existentes podem ter `perfil_espaco` nulo.
 *   **Implementação atual:** tabela `espaco_usuario`, que relaciona espaços a usuários (relação N:N). As colunas `id_espaco` e `id_usuario` formam a chave primária composta e são chaves estrangeiras para `espaco.id` e `usuario.id`, respectivamente.
-*   **Regra da aplicação:** os vínculos são permitidos somente para usuários com perfil Coordenador ou Monitor. Esta tabela associativa não está representada no modelo conceitual anterior e foi incluída para refletir a implementação atual.
+*   **Regra da aplicação:** cada vínculo associa um Membro a um espaço com um papel local de Coordenador ou Monitor. Administradores têm acesso global; a migração pode preservar vínculos administrativos antigos sem papel local. Esta tabela associativa não estava representada no modelo conceitual inicial e foi incluída para refletir a implementação atual.
 
 #### Tabelas: `ESPACO_HORARIO_FUNCIONAMENTO` e `ESPACO_PAUSA_FUNCIONAMENTO`
 *   **Justificativa:** Atendem diretamente às regras RN-11 e RN-12. O laboratório funciona em horários padronizados, mas requer fechamentos sazonais.
@@ -234,13 +236,13 @@ erDiagram
 ### 📅 3. Core: Fluxo de Solicitação e Agendamento
 
 #### Tabela: `SOLICITACAO`
-*   **Justificativa:** O "pedido" de uso feito pelo servidor (RF-03 e FB-01).
+*   **Justificativa:** O "pedido" de uso feito por um Membro (RF-03 e FB-01).
 *   **Atributos:**
     *   `urgencia`: Requisito RF-07, informa ao gestor prioridade de análise.
     *   `espaco_reservado`: Indica se a solicitação reserva o espaço inteiro; para reserva independente de recurso, fica falso e `id_espaco` identifica o espaço físico do recurso.
     *   `status`: Situação do pedido (`Pendente`, `AguardandoComplementacao`, `AguardandoRespostaProposta`, `Aprovado`, `Rejeitado` ou `Cancelada`).
-    *   `decisao_justificativa`: O coordenador *precisa* registrar o motivo da sua decisão (RF-09).
-*   **Implementação atual:** Administrador ou Coordenador pode aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
+    *   `decisao_justificativa`: O Administrador ou Coordenador do espaço registra o motivo da decisão (RF-09).
+*   **Implementação atual:** Administradores podem aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos em qualquer espaço. Coordenadores têm essas permissões apenas nos espaços em que estão vinculados como Coordenador. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
 
 #### Tabela: `SOLICITACAO_HORARIO`
 *   **Implementação atual:** cada horário solicitado é salvo em uma linha da tabela `solicitacao_horario`, ligada à solicitação por `id_solicitacao`.
@@ -257,7 +259,13 @@ erDiagram
 
 ### Migração no Supabase
 
-`Base.metadata.create_all` cria tabelas ausentes, mas não altera tabelas já existentes. Para atualizar um banco Supabase já utilizado, execute uma migração pelo SQL Editor do Supabase:
+Ao iniciar, a aplicação executa a migração de perfis: adiciona `perfil_espaco`
+à tabela `espaco_usuario` se necessário, preserva os vínculos antigos de
+Coordenador e Monitor como perfis locais e converte perfis globais antigos
+para `Membro` (mantendo Administrador). Ela também cria tabelas ausentes via
+`Base.metadata.create_all`; isso não substitui migrações para outras alterações
+de schema. Para atualizar um banco Supabase já utilizado com as demais tabelas
+de solicitações e agenda, execute a migração pelo SQL Editor do Supabase:
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.solicitacao_horario (

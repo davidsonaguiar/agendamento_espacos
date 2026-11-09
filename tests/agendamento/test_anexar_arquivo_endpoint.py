@@ -11,7 +11,7 @@ def test_solicitante_anexa_pdf_valido(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={
             "arquivo": (
                 "documento.pdf",
@@ -34,7 +34,7 @@ def test_solicitante_anexa_docx_valido(client, headers, solicitacao):
         documento.writestr("word/document.xml", "<document/>")
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={
             "arquivo": (
                 "documento.docx",
@@ -55,7 +55,7 @@ def test_anexar_arquivo_rejeita_extensao_nao_permitida(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={"arquivo": ("script.exe", b"conteudo", "application/octet-stream")},
     )
 
@@ -67,7 +67,7 @@ def test_anexar_arquivo_rejeita_pdf_com_conteudo_invalido(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={"arquivo": ("documento.pdf", b"nao e pdf", "application/pdf")},
     )
 
@@ -79,7 +79,7 @@ def test_anexar_arquivo_rejeita_arquivo_vazio(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={"arquivo": ("documento.pdf", b"", "application/pdf")},
     )
 
@@ -91,7 +91,7 @@ def test_anexar_arquivo_rejeita_arquivo_acima_do_limite(
 ):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={
             "arquivo": (
                 "documento.pdf",
@@ -127,7 +127,7 @@ def test_anexar_arquivo_rejeita_usuario_diferente_do_solicitante(
     )
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={"arquivo": ("documento.pdf", b"%PDF-1.7", "application/pdf")},
     )
 
@@ -137,7 +137,7 @@ def test_anexar_arquivo_rejeita_usuario_diferente_do_solicitante(
 def test_anexar_arquivo_rejeita_solicitacao_inexistente(client, headers):
     resposta = client.post(
         "/solicitacoes/99999/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={"arquivo": ("documento.pdf", b"%PDF-1.7", "application/pdf")},
     )
 

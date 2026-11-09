@@ -1,10 +1,11 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def test_responsavel_atualiza_projeto(client, headers, projeto):
     resposta = client.put(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={
             "finalidade": "Finalidade alterada pela API",
             "quantidade_participantes": 5,
@@ -21,7 +22,7 @@ def test_usuario_que_nao_e_responsavel_nao_atualiza_projeto(
 ):
     resposta = client.put(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"finalidade": "Alteração não autorizada"},
     )
 
@@ -33,7 +34,7 @@ def test_atualizar_projeto_inexistente_retorna_nao_encontrado(
 ):
     resposta = client.put(
         "/projetos/99999",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"finalidade": "Projeto inexistente"},
     )
 
@@ -43,7 +44,7 @@ def test_atualizar_projeto_inexistente_retorna_nao_encontrado(
 def test_atualizar_projeto_rejeita_payload_invalido(client, headers, projeto):
     resposta = client.put(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={"finalidade": None},
     )
 
@@ -55,7 +56,7 @@ def test_atualizar_projeto_aceita_payload_vazio_sem_alteracoes(
 ):
     resposta = client.put(
         f"/projetos/{projeto['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json={},
     )
 

@@ -11,7 +11,7 @@ def test_usuario_autenticado_lista_pausas_do_espaco(
 
     resposta = client.get(
         f"/espacos/{espaco['id']}/pausas",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200

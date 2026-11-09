@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.compartilhado.infra.banco_dados import Base, motor
+from app.compartilhado.infra.migracoes import migrar_papeis_usuarios
 from app.modulos.agendamento.infra.modelos import (
     ReservaAgendaModelo,
     SolicitacaoInteracaoModelo,
@@ -53,4 +54,5 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
             agenda_reserva_recurso_tabela,
         ],
     )
+    migrar_papeis_usuarios(motor)
     yield

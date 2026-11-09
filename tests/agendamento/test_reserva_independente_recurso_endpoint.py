@@ -54,7 +54,7 @@ def solicitar_recurso(client, headers, id_recurso, *, data=None):
     payload["horarios"] = [data or horario_futuro()]
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload,
     )
     return resposta
@@ -119,7 +119,7 @@ def test_solicitacao_exige_espaco_ou_recurso(client, headers, espaco):
 
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload,
     )
 
@@ -142,7 +142,7 @@ def test_solicitacao_pode_reservar_espaco_com_recurso(
 
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload,
     )
 
@@ -280,7 +280,7 @@ def test_disponibilidade_de_recurso_independente_considera_reserva_do_recurso(
 
     disponibilidade = client.get(
         "/agendamentos/disponibilidade",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "ids_recursos": recurso["id"],
             "data_hora_inicio": (
@@ -293,7 +293,7 @@ def test_disponibilidade_de_recurso_independente_considera_reserva_do_recurso(
     )
     horarios = client.get(
         "/agendamentos/horarios-disponiveis",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "ids_recursos": recurso["id"],
             "data_inicio": horario["data_reserva"],
@@ -329,7 +329,7 @@ def test_listar_reservas_indica_que_recurso_nao_reserva_o_espaco(
 
     resposta = client.get(
         "/agendamentos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "data_hora_inicio": f"{horario['data_reserva']}T00:00:00",
             "data_hora_fim": (
@@ -380,7 +380,7 @@ def test_replanejar_reserva_independente_preserva_alvo_ao_aceitar(
     resposta = client.post(
         f"/solicitacoes/{solicitacao.json()['id']}/propostas-replanejamento/"
         f"{id_interacao}/resposta",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json={"aceita": True, "mensagem": "Aceito o recurso e horário."},
     )
 

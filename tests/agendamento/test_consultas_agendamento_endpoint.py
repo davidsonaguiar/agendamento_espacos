@@ -48,7 +48,7 @@ def test_consultar_disponibilidade_retorna_disponivel(
 
     resposta = client.get(
         "/agendamentos/disponibilidade",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_hora_inicio": f"{data.isoformat()}T10:00:00",
@@ -81,7 +81,7 @@ def test_consultar_disponibilidade_informa_conflito_de_reserva(
 
     resposta = client.get(
         "/agendamentos/disponibilidade",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_hora_inicio": f"{data.isoformat()}T10:00:00",
@@ -106,7 +106,7 @@ def test_consultar_disponibilidade_rejeita_periodo_invalido(
 ):
     resposta = client.get(
         "/agendamentos/disponibilidade",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_hora_inicio": inicio,
@@ -152,7 +152,7 @@ def test_listar_reservas_retorna_reserva_no_periodo(
 
     resposta = client.get(
         "/agendamentos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "data_hora_inicio": f"{data.isoformat()}T00:00:00",
             "data_hora_fim": f"{(data + timedelta(days=1)).isoformat()}T00:00:00",
@@ -186,7 +186,7 @@ def test_listar_reservas_retorna_reserva_no_periodo(
 def test_listar_reservas_rejeita_filtros_invalidos(client, headers, params):
     resposta = client.get(
         "/agendamentos/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params=params,
     )
 
@@ -212,7 +212,7 @@ def test_consultar_horarios_disponiveis_rejeita_intervalo_invertido(
 
     resposta = client.get(
         "/agendamentos/horarios-disponiveis",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_inicio": (data + timedelta(days=1)).isoformat(),
@@ -230,7 +230,7 @@ def test_consultar_horarios_disponiveis_rejeita_periodo_acima_do_limite(
 
     resposta = client.get(
         "/agendamentos/horarios-disponiveis",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params={
             "id_espaco": espaco["id"],
             "data_inicio": data.isoformat(),
@@ -255,7 +255,7 @@ def test_consultar_horarios_disponiveis_rejeita_recursos_duplicados(
 
     resposta = client.get(
         "/agendamentos/horarios-disponiveis",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         params=[
             ("id_espaco", espaco["id"]),
             ("data_inicio", data.isoformat()),

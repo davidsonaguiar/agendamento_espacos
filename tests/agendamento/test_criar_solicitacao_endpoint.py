@@ -3,6 +3,7 @@ from datetime import date, timedelta
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.agendamento.conftest import (
     criar_projeto,
     criar_solicitacao,
@@ -13,19 +14,19 @@ from tests.agendamento.conftest import (
 def test_servidor_cria_solicitacao_com_sucesso(client, headers, espaco, usuarios):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(
             espaco["id"],
-            ids_usuarios_envolvidos=[usuarios[PerfilUsuario.MONITOR]],
+            ids_usuarios_envolvidos=[usuarios[PerfilEspaco.MONITOR]],
         ),
     )
 
     assert resposta.status_code == 201
     corpo = resposta.json()
     assert corpo["status"] == "Pendente"
-    assert corpo["id_solicitante"] == usuarios[PerfilUsuario.SERVIDOR]
+    assert corpo["id_solicitante"] == usuarios[PerfilUsuario.MEMBRO]
     assert len(corpo["horarios"]) == 1
-    assert corpo["usuarios_envolvidos"][0]["id_usuario"] == usuarios[PerfilUsuario.MONITOR]
+    assert corpo["usuarios_envolvidos"][0]["id_usuario"] == usuarios[PerfilEspaco.MONITOR]
 
 
 def test_servidor_cria_solicitacao_associada_a_projeto(
@@ -33,7 +34,7 @@ def test_servidor_cria_solicitacao_associada_a_projeto(
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(espaco["id"], id_projeto=projeto["id"]),
     )
 
@@ -41,16 +42,16 @@ def test_servidor_cria_solicitacao_associada_a_projeto(
     assert resposta.json()["id_projeto"] == projeto["id"]
 
 
-def test_criar_solicitacao_rejeita_perfil_diferente_de_servidor(
+def test_membro_com_perfil_local_monitor_pode_criar_solicitacao(
     client, headers, espaco
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.MONITOR],
+        headers=headers[PerfilEspaco.MONITOR],
         json=payload_solicitacao(espaco["id"]),
     )
 
-    assert resposta.status_code == 403
+    assert resposta.status_code == 201
 
 
 def test_criar_solicitacao_rejeita_requisicao_sem_token(client, espaco):
@@ -79,7 +80,7 @@ def test_criar_solicitacao_rejeita_payload_invalido(
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(espaco["id"], **alteracoes),
     )
 
@@ -89,7 +90,7 @@ def test_criar_solicitacao_rejeita_payload_invalido(
 def test_criar_solicitacao_rejeita_espaco_inexistente(client, headers):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(99999),
     )
 
@@ -99,7 +100,7 @@ def test_criar_solicitacao_rejeita_espaco_inexistente(client, headers):
 def test_criar_solicitacao_rejeita_projeto_inexistente(client, headers, espaco):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(espaco["id"], id_projeto=99999),
     )
 
@@ -111,10 +112,10 @@ def test_criar_solicitacao_rejeita_solicitante_na_lista_de_envolvidos(
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(
             espaco["id"],
-            ids_usuarios_envolvidos=[usuarios[PerfilUsuario.SERVIDOR]],
+            ids_usuarios_envolvidos=[usuarios[PerfilUsuario.MEMBRO]],
         ),
     )
 
@@ -126,7 +127,7 @@ def test_criar_solicitacao_rejeita_usuario_envolvido_inexistente(
 ):
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(espaco["id"], ids_usuarios_envolvidos=[99999]),
     )
 
@@ -136,10 +137,10 @@ def test_criar_solicitacao_rejeita_usuario_envolvido_inexistente(
 def test_criar_solicitacao_nao_permite_repetir_usuarios_envolvidos(
     client, headers, espaco, usuarios
 ):
-    id_monitor = usuarios[PerfilUsuario.MONITOR]
+    id_monitor = usuarios[PerfilEspaco.MONITOR]
     resposta = client.post(
         "/solicitacoes/",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_solicitacao(
             espaco["id"],
             ids_usuarios_envolvidos=[id_monitor, id_monitor],

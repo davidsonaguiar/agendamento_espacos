@@ -165,13 +165,19 @@ def pegar_caso_de_uso_decidir_solicitacao(
 def pegar_caso_de_uso_listar_solicitacoes(
     db: SessaoBD,
 ) -> ListarSolicitacoesCasoDeUso:
-    return ListarSolicitacoesCasoDeUso(SolicitacaoRepositorio(db))
+    return ListarSolicitacoesCasoDeUso(
+        SolicitacaoRepositorio(db),
+        EspacoRepositorio(db),
+    )
 
 
 def pegar_caso_de_uso_obter_solicitacao(
     db: SessaoBD,
 ) -> ObterSolicitacaoCasoDeUso:
-    return ObterSolicitacaoCasoDeUso(SolicitacaoRepositorio(db))
+    return ObterSolicitacaoCasoDeUso(
+        SolicitacaoRepositorio(db),
+        EspacoRepositorio(db),
+    )
 
 
 def pegar_caso_de_uso_anexar_arquivo(
@@ -189,4 +195,5 @@ def pegar_caso_de_uso_obter_url_anexo(
     return ObterUrlAnexoCasoDeUso(
         SolicitacaoRepositorio(db),
         ArmazenamentoSupabase(),
+        EspacoRepositorio(db),
     )
