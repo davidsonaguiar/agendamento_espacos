@@ -11,7 +11,18 @@ from app.modulos.espacos.dominio.entidades import (
 
 class AgendamentoRepositorioContrato(ABC):
     @abstractmethod
-    def validar_recursos(self, id_espaco: int, ids_recursos: list[int]) -> None:
+    def validar_recursos(
+        self,
+        id_espaco: int,
+        ids_recursos: list[int],
+        exigir_independentes: bool = False,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def buscar_id_espaco_dos_recursos(
+        self, ids_recursos: list[int]
+    ) -> int:
         pass
 
     @abstractmethod
@@ -20,7 +31,7 @@ class AgendamentoRepositorioContrato(ABC):
         id_espaco: int,
         data_hora_inicio: datetime,
         data_hora_fim: datetime,
-        bloquear_espaco: bool = False,
+        bloquear_espaco: bool = True,
         ids_recursos: list[int] | None = None,
     ) -> bool:
         pass
@@ -32,6 +43,7 @@ class AgendamentoRepositorioContrato(ABC):
         id_espaco: int,
         periodos: list[PeriodoReserva],
         ids_recursos: list[int] | None = None,
+        espaco_reservado: bool = True,
     ) -> list[ReservaAgenda]:
         pass
 

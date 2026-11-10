@@ -4,6 +4,7 @@ from app.compartilhado.dominio.erros import EntidadeNaoEncontradaErro
 from app.modulos.espacos.dominio.contratos import RecursoRepositorioContrato
 from app.modulos.espacos.dominio.entidades import Recurso
 from app.modulos.espacos.infra.modelos import RecursoModelo
+from .reservas_associadas import listar_reservas_por_recursos
 
 
 class RecursoRepositorio(RecursoRepositorioContrato):
@@ -16,7 +17,16 @@ class RecursoRepositorio(RecursoRepositorioContrato):
             .filter(RecursoModelo.id == id_recurso)
             .first()
         )
-        return self._converter(modelo) if modelo else None
+        if not modelo:
+            return None
+        reservas_por_recurso = listar_reservas_por_recursos(
+            self.db,
+            [modelo.id],
+        )
+        return self._converter(
+            modelo,
+            reservas=reservas_por_recurso.get(modelo.id, []),
+        )
 
     def listar_por_espaco(
         self,
@@ -31,7 +41,17 @@ class RecursoRepositorio(RecursoRepositorioContrato):
         if apenas_disponiveis:
             consulta = consulta.filter(RecursoModelo.disponibilidade.is_(True))
         modelos = consulta.order_by(RecursoModelo.id).offset(skip).limit(limit).all()
-        return [self._converter(modelo) for modelo in modelos]
+        reservas_por_recurso = listar_reservas_por_recursos(
+            self.db,
+            [modelo.id for modelo in modelos],
+        )
+        return [
+            self._converter(
+                modelo,
+                reservas=reservas_por_recurso.get(modelo.id, []),
+            )
+            for modelo in modelos
+        ]
 
     def salvar(self, recurso: Recurso) -> Recurso:
         modelo = RecursoModelo(
@@ -45,7 +65,14 @@ class RecursoRepositorio(RecursoRepositorioContrato):
         self.db.add(modelo)
         self.db.commit()
         self.db.refresh(modelo)
-        return self._converter(modelo)
+        reservas_por_recurso = listar_reservas_por_recursos(
+            self.db,
+            [modelo.id],
+        )
+        return self._converter(
+            modelo,
+            reservas=reservas_por_recurso.get(modelo.id, []),
+        )
 
     def atualizar(self, recurso: Recurso) -> Recurso:
         if recurso.id is None:
@@ -66,7 +93,14 @@ class RecursoRepositorio(RecursoRepositorioContrato):
         modelo.reserva_independente = recurso.reserva_independente
         self.db.commit()
         self.db.refresh(modelo)
-        return self._converter(modelo)
+        reservas_por_recurso = listar_reservas_por_recursos(
+            self.db,
+            [modelo.id],
+        )
+        return self._converter(
+            modelo,
+            reservas=reservas_por_recurso.get(modelo.id, []),
+        )
 
     def excluir(self, id_recurso: int) -> None:
         modelo = (
@@ -81,7 +115,7 @@ class RecursoRepositorio(RecursoRepositorioContrato):
         self.db.commit()
 
     @staticmethod
-    def _converter(modelo: RecursoModelo) -> Recurso:
+    def _converter(modelo: RecursoModelo, reservas=None) -> Recurso:
         return Recurso(
             id=modelo.id,
             nome=modelo.nome,
@@ -90,4 +124,5 @@ class RecursoRepositorio(RecursoRepositorioContrato):
             disponibilidade=modelo.disponibilidade,
             reserva_independente=modelo.reserva_independente,
             id_espaco=modelo.id_espaco,
+            reservas=reservas or [],
         )

@@ -1,4 +1,5 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def payload_interno(**overrides):
@@ -8,7 +9,7 @@ def payload_interno(**overrides):
         "vinculo_institucional": "MAT98770",
         "email": "monitor.criado@example.com",
         "senha": "SenhaForte123!",
-        "perfil": PerfilUsuario.MONITOR.value,
+        "perfil": PerfilUsuario.MEMBRO.value,
     }
     return payload | overrides
 
@@ -21,27 +22,26 @@ def test_administrador_cadastra_usuario_interno(client, headers):
     )
 
     assert resposta.status_code == 201
-    assert resposta.json()["perfil"] == PerfilUsuario.MONITOR.value
+    assert resposta.json()["perfil"] == PerfilUsuario.MEMBRO.value
 
 
-def test_coordenador_cadastra_monitor(client, headers):
+def test_coordenador_nao_pode_cadastrar_usuario(client, headers):
     resposta = client.post(
         "/usuarios/interno",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
         json=payload_interno(),
     )
 
-    assert resposta.status_code == 201
-    assert resposta.json()["perfil"] == PerfilUsuario.MONITOR.value
+    assert resposta.status_code == 403
 
 
 def test_coordenador_nao_pode_cadastrar_administrador_ou_coordenador(
     client, headers
 ):
-    for perfil in (PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR):
+    for perfil in (PerfilUsuario.ADMINISTRADOR, PerfilUsuario.MEMBRO):
         resposta = client.post(
             "/usuarios/interno",
-            headers=headers[PerfilUsuario.COORDENADOR],
+            headers=headers[PerfilEspaco.COORDENADOR],
             json=payload_interno(
                 cpf="98765432111" if perfil == PerfilUsuario.ADMINISTRADOR else "98765432112",
                 vinculo_institucional=(
@@ -62,7 +62,7 @@ def test_usuario_sem_perfil_autorizado_nao_cadastra_usuario_interno(
 ):
     resposta = client.post(
         "/usuarios/interno",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         json=payload_interno(),
     )
 

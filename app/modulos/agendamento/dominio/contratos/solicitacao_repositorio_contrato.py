@@ -23,6 +23,10 @@ class SolicitacaoRepositorioContrato(ABC):
         pass
 
     @abstractmethod
+    def buscar_por_espacos(self, ids_espacos: list[int]) -> list[Solicitacao]:
+        pass
+
+    @abstractmethod
     def salvar(self, solicitacao: Solicitacao) -> Solicitacao:
         pass
 

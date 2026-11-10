@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.espacos.conftest import criar_recurso
 
 
@@ -8,13 +9,21 @@ from tests.espacos.conftest import criar_recurso
     "perfil",
     [
         PerfilUsuario.ADMINISTRADOR,
-        PerfilUsuario.COORDENADOR,
-        PerfilUsuario.MONITOR,
+        PerfilEspaco.COORDENADOR,
+        PerfilEspaco.MONITOR,
     ],
 )
 def test_perfis_autorizados_veem_recursos_indisponiveis(
-    client, headers, espaco, perfil
+    client, headers, espaco, usuarios, perfil
 ):
+    if perfil == PerfilEspaco.MONITOR:
+        vinculo = client.post(
+            f"/espacos/{espaco['id']}/usuarios/{usuarios[perfil]}",
+            headers=headers[PerfilUsuario.ADMINISTRADOR],
+            json={"perfil_espaco": perfil.value},
+        )
+        assert vinculo.status_code == 201, vinculo.text
+
     recurso = criar_recurso(
         client,
         headers,
@@ -51,7 +60,7 @@ def test_servidor_lista_somente_recursos_disponiveis(
 
     resposta = client.get(
         f"/espacos/{espaco['id']}/recursos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200

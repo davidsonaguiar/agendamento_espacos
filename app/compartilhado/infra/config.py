@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -5,13 +7,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Config(BaseSettings):
     url_banco_dados: str
     chave_secreta: str
-    minutos_expiracao_token: int = 30
+    minutos_expiracao_token: int = 15
+    dias_expiracao_refresh_token: int = 7
+    refresh_cookie_secure: bool = True
+    refresh_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     origens_cors: str = "*"
     hosts_permitidos: str = "localhost,127.0.0.1"
     permite_credenciais_cors: bool = False
     supabase_url: str | None = None
     supabase_service_role_key: SecretStr | None = None
     supabase_bucket_anexos: str = "anexos-solicitacoes"
+    seed_password: SecretStr | None = None
 
     @property
     def lista_origens_cors(self) -> list[str]:
@@ -26,6 +32,11 @@ class Config(BaseSettings):
         if self.permite_credenciais_cors and "*" in self.lista_origens_cors:
             raise ValueError(
                 "PERMITE_CREDENCIAIS_CORS não pode ser true quando ORIGENS_CORS contém '*'."
+            )
+        if self.refresh_cookie_samesite == "none" and not self.refresh_cookie_secure:
+            raise ValueError(
+                "REFRESH_COOKIE_SECURE deve ser true quando "
+                "REFRESH_COOKIE_SAMESITE for 'none'."
             )
         return self
 

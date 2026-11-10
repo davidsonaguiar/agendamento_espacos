@@ -50,19 +50,11 @@ class CriarProjetoCasoDeUso:
 
         if usuario_logado.perfil == PerfilUsuario.ADMINISTRADOR:
             return perfil_responsavel in {
-                PerfilUsuario.COORDENADOR,
-                PerfilUsuario.SERVIDOR,
+                PerfilUsuario.MEMBRO,
             } or (perfil_responsavel == PerfilUsuario.ADMINISTRADOR and mesmo_usuario)
 
-        if usuario_logado.perfil == PerfilUsuario.COORDENADOR:
-            return perfil_responsavel == PerfilUsuario.SERVIDOR or (
-                perfil_responsavel == PerfilUsuario.COORDENADOR and mesmo_usuario
-            )
-
-        if usuario_logado.perfil == PerfilUsuario.SERVIDOR:
-            return perfil_responsavel == PerfilUsuario.SERVIDOR and mesmo_usuario
-
         return (
-            usuario_logado.perfil == PerfilUsuario.MONITOR
-            and perfil_responsavel == PerfilUsuario.SERVIDOR
+            usuario_logado.perfil == PerfilUsuario.MEMBRO
+            and perfil_responsavel == PerfilUsuario.MEMBRO
+            and mesmo_usuario
         )

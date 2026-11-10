@@ -19,9 +19,9 @@ não tem status próprio.
 
 | Operação | Endpoint | Autorização | Sucesso |
 |---|---|---|---|
-| Criar | `POST /projetos/` | Administrador, Coordenador, Servidor ou Monitor, sujeito à regra de atribuição | 201, `ProjetoResposta` |
-| Listar | `GET /projetos/` | Autenticado; visibilidade por perfil | 200, lista |
-| Consultar | `GET /projetos/{id_projeto}` | Autenticado; visibilidade por perfil | 200, `ProjetoResposta` |
+| Criar | `POST /projetos/` | Administrador ou Membro, sujeito à regra de atribuição | 201, `ProjetoResposta` |
+| Listar | `GET /projetos/` | Autenticado; visibilidade por perfil global | 200, lista |
+| Consultar | `GET /projetos/{id_projeto}` | Autenticado; visibilidade por perfil global | 200, `ProjetoResposta` |
 | Atualizar | `PUT /projetos/{id_projeto}` | Autenticado; caso de uso exige responsável | 200, `ProjetoResposta` |
 | Excluir | `DELETE /projetos/{id_projeto}` | Autenticado; caso de uso exige criador ou Administrador | 204, sem corpo |
 | Adicionar participante | `POST /projetos/{id_projeto}/participantes` | Autenticado; responsável ou Administrador | 201, `ProjetoResposta` |
@@ -43,15 +43,10 @@ Não há paginação, filtros ou ordenação configurável nas rotas de projeto.
 
 | Solicitante | Responsáveis permitidos |
 |---|---|
-| Administrador | Coordenador, Servidor ou ele próprio quando também for Administrador |
-| Coordenador | Servidor ou ele próprio quando também for Coordenador |
-| Servidor | Somente ele próprio, se também for Servidor |
-| Monitor | Qualquer Servidor |
-| Aluno | Não pode criar projetos pela rota |
+| Administrador | Qualquer Membro ou ele próprio |
+| Membro | Somente ele próprio |
 
-Administrador não pode atribuir a outro Administrador; Coordenador não pode
-atribuir a outro Coordenador; nenhum perfil pode atribuir responsabilidade a
-Aluno ou Monitor.
+Os perfis locais de Coordenador e Monitor não alteram as permissões de projeto.
 
 ### Entrada `CriarProjeto`
 
@@ -69,17 +64,14 @@ usuários inativos.
 **Casos de uso:** `ListarProjetosCasoDeUso.executar` e
 `ObterProjetoCasoDeUso.executar`.
 
-- Administrador, Coordenador e Monitor podem consultar todos os projetos.
-- Servidor consulta/lista projetos em que é responsável **ou** participante.
-- Aluno consulta/lista apenas projetos em que participa.
-- O fato de ser criador não concede, por si só, visibilidade a Servidor ou
-  Aluno.
+- Administrador pode consultar todos os projetos.
+- Membro consulta/lista projetos em que é responsável **ou** participante.
+- O fato de ser criador não concede, por si só, visibilidade a Membro.
 - Para consulta individual, projeto fora do escopo e ID inexistente são
   ambos reportados como entidade não encontrada (HTTP 404).
 
-O repositório aplica os filtros no banco. Para servidor, o vínculo pode ser
-responsabilidade ou associação de participante; para aluno, somente a
-associação de participante.
+O repositório aplica os filtros no banco. Para Membro, o vínculo pode ser
+responsabilidade ou associação de participante.
 
 ## Atualizar projeto
 
@@ -156,4 +148,3 @@ atualizado (200). Não recalcula `quantidade_participantes`.
 - Não há ordenação explícita de projetos ou participantes.
 - A exclusão de usuário responsável/criador não tem comportamento de cascata
   declarado nas respectivas FKs; depende das restrições do banco.
-

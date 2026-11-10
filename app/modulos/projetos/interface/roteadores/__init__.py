@@ -1,3 +1,3 @@
-from .roteador import roteador
+from .projeto import roteador
 
 __all__ = ["roteador"]

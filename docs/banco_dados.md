@@ -19,7 +19,7 @@ erDiagram
         string vinculo_institucional
         string email
         string senha_codificada
-        string perfil
+        string perfil "Administrador ou Membro"
         boolean ativo
     }
 
@@ -51,6 +51,7 @@ erDiagram
     ESPACO_USUARIO {
         int id_espaco PK, FK
         int id_usuario PK, FK
+        string perfil_espaco "Coordenador ou Monitor; nulo para vínculo administrativo"
     }
 
     ESPACO_HORARIO_FUNCIONAMENTO {
@@ -82,11 +83,11 @@ erDiagram
 
     SOLICITACAO {
         int id PK
-        string tipo
         string finalidade
         boolean urgencia
         string status
         string decisao_justificativa
+        boolean espaco_reservado
         int id_projeto FK
         int id_solicitante FK
         int id_espaco FK
@@ -124,6 +125,7 @@ erDiagram
         datetime data_hora_inicio
         datetime data_hora_fim
         string situacao
+        boolean espaco_reservado
         int id_solicitacao FK
         int id_espaco FK
     }
@@ -184,8 +186,13 @@ erDiagram
 #### Tabela: `USUARIO`
 *   **Justificativa:** Atende ao RF-01 (Autenticação e acesso por perfil) e RF-02 (Cadastro de solicitante). Responsável por gerenciar os atores do sistema.
 *   **Atributos:**
-    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados obrigatórios para identificação formal do servidor/aluno no IFAL.
-    *   `perfil`: Define autorizações do usuário (Coordenador, Servidor Solicitante, Monitor).
+    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados de identificação institucional do Membro.
+    *   `perfil`: Define o papel global (`Administrador` ou `Membro`). Coordenador e Monitor são papéis locais armazenados em `ESPACO_USUARIO.perfil_espaco`.
+
+#### Tabelas: `SESSAO_AUTENTICACAO` e `REFRESH_TOKEN`
+*   `sessao_autenticacao` representa uma sessão/dispositivo e guarda o usuário, criação, expiração e revogação. Cada JWT de acesso referencia a sessão por `sid`, permitindo invalidação imediata.
+*   `refresh_token` guarda somente o hash SHA-256 de cada refresh token, sua expiração e data de consumo. A rotação preserva hashes consumidos para detectar reutilização e revogar a sessão.
+*   A aplicação cria essas tabelas automaticamente em bancos existentes ao iniciar.
 
 #### Tabela: `PROJETO`
 *   **Justificativa:** Atende ao RF-04, registrando o contexto que motiva o uso do laboratório (pesquisa, extensão, disciplina).
@@ -209,8 +216,9 @@ erDiagram
 *   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade inteira, bloco de até 50 caracteres e disponibilidade booleana.
 
 #### Tabela associativa: `ESPACO_USUARIO`
+*   **Atributos:** `id_espaco`, `id_usuario` e `perfil_espaco`. O par espaço/usuário é único; cada Membro pode ter no máximo um perfil local por espaço (`Coordenador` ou `Monitor`). Um usuário pode exercer papéis diferentes em espaços diferentes. Administradores têm acesso global e não dependem de vínculo local; vínculos administrativos existentes podem ter `perfil_espaco` nulo.
 *   **Implementação atual:** tabela `espaco_usuario`, que relaciona espaços a usuários (relação N:N). As colunas `id_espaco` e `id_usuario` formam a chave primária composta e são chaves estrangeiras para `espaco.id` e `usuario.id`, respectivamente.
-*   **Regra da aplicação:** os vínculos são permitidos somente para usuários com perfil Coordenador ou Monitor. Esta tabela associativa não está representada no modelo conceitual anterior e foi incluída para refletir a implementação atual.
+*   **Regra da aplicação:** cada vínculo associa um Membro a um espaço com um papel local de Coordenador ou Monitor. Administradores têm acesso global; a migração pode preservar vínculos administrativos antigos sem papel local. Esta tabela associativa não estava representada no modelo conceitual inicial e foi incluída para refletir a implementação atual.
 
 #### Tabelas: `ESPACO_HORARIO_FUNCIONAMENTO` e `ESPACO_PAUSA_FUNCIONAMENTO`
 *   **Justificativa:** Atendem diretamente às regras RN-11 e RN-12. O laboratório funciona em horários padronizados, mas requer fechamentos sazonais.
@@ -233,20 +241,21 @@ erDiagram
 ### 📅 3. Core: Fluxo de Solicitação e Agendamento
 
 #### Tabela: `SOLICITACAO`
-*   **Justificativa:** O "pedido" de uso feito pelo servidor (RF-03 e FB-01).
+*   **Justificativa:** O "pedido" de uso feito por um Membro (RF-03 e FB-01).
 *   **Atributos:**
     *   `urgencia`: Requisito RF-07, informa ao gestor prioridade de análise.
+    *   `espaco_reservado`: Indica se a solicitação reserva o espaço inteiro; para reserva independente de recurso, fica falso e `id_espaco` identifica o espaço físico do recurso.
     *   `status`: Situação do pedido (`Pendente`, `AguardandoComplementacao`, `AguardandoRespostaProposta`, `Aprovado`, `Rejeitado` ou `Cancelada`).
-    *   `decisao_justificativa`: O coordenador *precisa* registrar o motivo da sua decisão (RF-09).
-*   **Implementação atual:** Administrador ou Coordenador pode aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
+    *   `decisao_justificativa`: O Administrador ou Coordenador do espaço registra o motivo da decisão (RF-09).
+*   **Implementação atual:** Administradores podem aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos em qualquer espaço. Coordenadores têm essas permissões apenas nos espaços em que estão vinculados como Coordenador. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
 
 #### Tabela: `SOLICITACAO_HORARIO`
 *   **Implementação atual:** cada horário solicitado é salvo em uma linha da tabela `solicitacao_horario`, ligada à solicitação por `id_solicitacao`.
 *   **Atributos:** `data_reserva` (DATE), `hora_inicio` e `hora_fim` (TIME). A API exige ao menos um horário, data/início futuros e hora final posterior à inicial.
 
 #### Tabela: `SOLICITACAO_RECURSO`
-*   **Justificativa:** Uma solicitação a um espaço pode exigir o uso de N máquinas/equipamentos específicos.
-*   **Implementação atual:** a associação é validada para recursos do espaço solicitado e recursos indisponíveis são rejeitados.
+*   **Justificativa:** Uma solicitação pode reservar o espaço inteiro, opcionalmente com recursos, ou apenas recursos independentes.
+*   **Implementação atual:** quando o espaço inteiro é solicitado, os recursos devem pertencer a ele. Para reserva somente de recursos, todos devem ser independentes, disponíveis e pertencer ao mesmo espaço físico.
 
 #### Tabela: `ANEXO`
 *   **Implementação atual:** a tabela `anexo` guarda metadados e o caminho interno do objeto no Supabase Storage; o bucket é privado, portanto `url_caminho` não é uma URL pública.
@@ -255,7 +264,13 @@ erDiagram
 
 ### Migração no Supabase
 
-`Base.metadata.create_all` cria tabelas ausentes, mas não altera tabelas já existentes. Para atualizar um banco Supabase já utilizado, execute uma migração pelo SQL Editor do Supabase:
+Ao iniciar, a aplicação executa a migração de perfis: adiciona `perfil_espaco`
+à tabela `espaco_usuario` se necessário, preserva os vínculos antigos de
+Coordenador e Monitor como perfis locais e converte perfis globais antigos
+para `Membro` (mantendo Administrador). Ela também cria tabelas ausentes via
+`Base.metadata.create_all`; isso não substitui migrações para outras alterações
+de schema. Para atualizar um banco Supabase já utilizado com as demais tabelas
+de solicitações e agenda, execute a migração pelo SQL Editor do Supabase:
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.solicitacao_horario (
@@ -288,11 +303,23 @@ CREATE TABLE IF NOT EXISTS public.agenda_reserva (
     data_hora_inicio timestamp without time zone NOT NULL,
     data_hora_fim timestamp without time zone NOT NULL,
     situacao varchar(50) NOT NULL DEFAULT 'Confirmada',
+    espaco_reservado boolean NOT NULL DEFAULT true,
     id_solicitacao integer NOT NULL
         REFERENCES public.solicitacao(id) ON DELETE CASCADE,
     id_espaco integer NOT NULL
         REFERENCES public.espaco(id) ON DELETE CASCADE
 );
+
+ALTER TABLE public.solicitacao
+    DROP COLUMN IF EXISTS tipo;
+
+ALTER TABLE public.solicitacao
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.agenda_reserva
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+DROP TYPE IF EXISTS public.tipo_solicitacao;
 
 CREATE INDEX IF NOT EXISTS ix_agenda_reserva_data_hora_inicio
     ON public.agenda_reserva (data_hora_inicio);
@@ -346,7 +373,7 @@ Confirme que `public.solicitacao.id` usa o tipo `integer` antes de executar a mi
 ### 📆 4. Efetivação: Agenda e Rastreabilidade
 
 #### Tabelas: `AGENDA_RESERVA` e `AGENDA_RESERVA_RECURSO`
-*   **Implementação atual de `AGENDA_RESERVA`:** a aprovação cria uma linha por horário solicitado, com `situacao=Confirmada`. As reservas guardam os recursos aprovados; conflitos por espaço e recurso são verificados e a disponibilidade considera apenas reservas confirmadas.
+*   **Implementação atual de `AGENDA_RESERVA`:** a aprovação cria uma linha por horário solicitado, com `situacao=Confirmada`. `espaco_reservado` distingue reserva integral do espaço de reserva independente de recurso; `id_espaco` identifica o espaço físico e as reservas guardam os recursos aprovados. Conflitos por espaço e recurso são verificados e a disponibilidade considera apenas reservas confirmadas.
 *   **Justificativa:** Representa o tempo bloqueado oficialmente na agenda após uma `SOLICITACAO` ter sido aprovada (RF-10 e RF-12).
 *   **Diferencial:** Ao isolar os recursos aprovados na tabela `AGENDA_RESERVA_RECURSO`, o sistema consegue checar individualmente conflitos de ferramentas. (Ex: O espaço pode estar livre, mas o osciloscópio solicitado já está em uso).
 

@@ -1,6 +1,7 @@
 import pytest
 
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def test_administrador_desativa_espaco(client, headers, espaco):
@@ -22,10 +23,10 @@ def test_desativar_espaco_rejeita_requisicao_sem_token(client, espaco):
 @pytest.mark.parametrize(
     "perfil",
     [
-        PerfilUsuario.COORDENADOR,
-        PerfilUsuario.MONITOR,
-        PerfilUsuario.SERVIDOR,
-        PerfilUsuario.ALUNO,
+        PerfilEspaco.COORDENADOR,
+        PerfilEspaco.MONITOR,
+        PerfilUsuario.MEMBRO,
+        PerfilUsuario.MEMBRO,
     ],
 )
 def test_desativar_espaco_rejeita_perfil_sem_permissao(

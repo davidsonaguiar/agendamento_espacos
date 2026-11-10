@@ -1,11 +1,12 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.agendamento.conftest import criar_solicitacao
 
 
 def test_solicitante_cancela_sua_solicitacao(client, headers, solicitacao):
     resposta = client.patch(
         f"/solicitacoes/{solicitacao['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
@@ -29,7 +30,7 @@ def test_usuario_que_nao_e_solicitante_nao_cancela_solicitacao(
 ):
     resposta = client.patch(
         f"/solicitacoes/{solicitacao['id']}",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
     )
 
     assert resposta.status_code == 403
@@ -51,11 +52,11 @@ def test_solicitacao_cancelada_nao_pode_ser_cancelada_novamente(
 ):
     primeira = client.patch(
         f"/solicitacoes/{solicitacao['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
     segunda = client.patch(
         f"/solicitacoes/{solicitacao['id']}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert primeira.status_code == 200

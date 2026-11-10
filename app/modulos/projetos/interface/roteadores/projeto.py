@@ -33,16 +33,14 @@ from app.modulos.usuarios.interface.seguranca_http import (
     obter_usuario_atual,
 )
 
-roteador = APIRouter(prefix="/projetos", tags=["Projetos"])
+roteador = APIRouter(prefix="/projetos", tags=["Projeto"])
 
 apenas_admin = VerificarPerfil([PerfilUsuario.ADMINISTRADOR])
 
 criadores_de_projeto = VerificarPerfil(
     [
         PerfilUsuario.ADMINISTRADOR,
-        PerfilUsuario.COORDENADOR,
-        PerfilUsuario.SERVIDOR,
-        PerfilUsuario.MONITOR,
+        PerfilUsuario.MEMBRO,
     ]
 )
 
@@ -51,7 +49,7 @@ criadores_de_projeto = VerificarPerfil(
     "/",
     response_model=ProjetoResposta,
     status_code=status.HTTP_201_CREATED,
-    summary="Cadastrar um projeto (Administrador, Coordenador, Servidor ou Monitor)",
+    summary="Cadastrar um projeto (Administrador ou Membro)",
 )
 def criar_projeto(
     dados: CriarProjeto,

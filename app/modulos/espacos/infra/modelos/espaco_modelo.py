@@ -3,8 +3,6 @@ from sqlalchemy.orm import relationship
 
 from app.compartilhado.infra.banco_dados import Base
 
-from .espaco_usuario_tabela import espaco_usuario_tabela
-
 
 class EspacoModelo(Base):
     __tablename__ = "espaco"
@@ -16,10 +14,10 @@ class EspacoModelo(Base):
     bloco = Column(String(50), nullable=True)
     disponibilidade = Column(Boolean, default=True, nullable=False)
 
-    usuarios_vinculados = relationship(
-        "UsuarioModelo",
-        secondary=espaco_usuario_tabela,
-        backref="espacos_vinculados",
+    vinculos_usuarios = relationship(
+        "EspacoUsuarioModelo",
+        back_populates="espaco",
+        cascade="all, delete-orphan",
     )
     horarios_funcionamento = relationship(
         "EspacoHorarioFuncionamentoModelo",

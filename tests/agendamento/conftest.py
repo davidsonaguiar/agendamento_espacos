@@ -7,16 +7,25 @@ from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
 from tests.conftest import cabecalhos_autenticacao
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
-def criar_espaco(client, headers, nome="Espaço de teste para agendamento"):
+def criar_espaco(client, headers, usuarios, nome="Espaço de teste para agendamento"):
     resposta = client.post(
         "/espacos/",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
         json={"nome": nome},
     )
     assert resposta.status_code == 201, resposta.text
-    return resposta.json()
+    espaco = resposta.json()
+    for perfil in (PerfilEspaco.COORDENADOR, PerfilEspaco.MONITOR):
+        vinculo = client.post(
+            f"/espacos/{espaco['id']}/usuarios/{usuarios[perfil]}",
+            headers=headers[PerfilUsuario.ADMINISTRADOR],
+            json={"perfil_espaco": perfil.value},
+        )
+        assert vinculo.status_code == 201, vinculo.text
+    return espaco
 
 
 def criar_projeto(client, headers, id_responsavel):
@@ -35,7 +44,6 @@ def criar_projeto(client, headers, id_responsavel):
 
 def payload_solicitacao(espaco_id: int, **overrides):
     return {
-        "tipo": "Espaço",
         "finalidade": "Atividade de integração",
         "urgencia": False,
         "id_espaco": espaco_id,
@@ -56,7 +64,7 @@ def criar_solicitacao(
     id_espaco: int,
     *,
     id_projeto: int | None = None,
-    perfil=PerfilUsuario.SERVIDOR,
+    perfil=PerfilUsuario.MEMBRO,
     cabecalho=None,
     **overrides,
 ):
@@ -73,8 +81,8 @@ def criar_solicitacao(
 
 
 @pytest.fixture
-def espaco(client, headers):
-    return criar_espaco(client, headers)
+def espaco(client, headers, usuarios):
+    return criar_espaco(client, headers, usuarios)
 
 
 @pytest.fixture
@@ -82,7 +90,7 @@ def projeto(client, headers, usuarios):
     return criar_projeto(
         client,
         headers,
-        usuarios[PerfilUsuario.SERVIDOR],
+        usuarios[PerfilUsuario.MEMBRO],
     )
 
 
@@ -95,7 +103,7 @@ def solicitacao(client, headers, espaco):
 def anexo(client, headers, solicitacao):
     resposta = client.post(
         f"/solicitacoes/{solicitacao['id']}/anexos",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
         files={
             "arquivo": (
                 "documento.pdf",
@@ -120,7 +128,7 @@ def outro_servidor(
             vinculo_institucional="MAT99999",
             email="outro.servidor@example.com",
             senha_codificada=senha_codificada,
-            perfil=PerfilUsuario.SERVIDOR,
+            perfil=PerfilUsuario.MEMBRO,
             ativo=True,
         )
         db.add(usuario)
@@ -128,5 +136,5 @@ def outro_servidor(
         db.refresh(usuario)
         return {
             "id": usuario.id,
-            "headers": cabecalhos_autenticacao(usuario.id),
+            "headers": cabecalhos_autenticacao(usuario.id, test_session_factory),
         }

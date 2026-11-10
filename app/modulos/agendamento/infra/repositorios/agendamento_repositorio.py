@@ -21,7 +21,12 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
     def __init__(self, db: Session):
         self.db = db
 
-    def validar_recursos(self, id_espaco: int, ids_recursos: list[int]) -> None:
+    def validar_recursos(
+        self,
+        id_espaco: int,
+        ids_recursos: list[int],
+        exigir_independentes: bool = False,
+    ) -> None:
         if not ids_recursos:
             return
         recursos = (
@@ -48,25 +53,74 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
             raise RegraDeNegocioErro(
                 f"O recurso {recurso_indisponivel.id} está indisponível."
             )
+        if exigir_independentes:
+            recurso_nao_independente = next(
+                (recurso for recurso in recursos if not recurso.reserva_independente),
+                None,
+            )
+            if recurso_nao_independente is not None:
+                raise RegraDeNegocioErro(
+                    f"O recurso {recurso_nao_independente.id} não pode ser "
+                    "reservado independentemente."
+                )
+
+    def buscar_id_espaco_dos_recursos(
+        self, ids_recursos: list[int]
+    ) -> int:
+        if not ids_recursos:
+            raise RegraDeNegocioErro(
+                "Informe ao menos um recurso para reservar independentemente."
+            )
+        if len(ids_recursos) != len(set(ids_recursos)):
+            raise RegraDeNegocioErro("Não informe recursos duplicados.")
+
+        recursos = (
+            self.db.query(RecursoModelo)
+            .filter(RecursoModelo.id.in_(ids_recursos))
+            .all()
+        )
+        ids_encontrados = {recurso.id for recurso in recursos}
+        if len(ids_encontrados) != len(ids_recursos):
+            id_invalido = next(
+                id_recurso
+                for id_recurso in ids_recursos
+                if id_recurso not in ids_encontrados
+            )
+            raise EntidadeNaoEncontradaErro("Recurso", id_invalido)
+        if len({recurso.id_espaco for recurso in recursos}) != 1:
+            raise RegraDeNegocioErro(
+                "Os recursos de uma solicitação devem pertencer ao mesmo espaço."
+            )
+        id_espaco = recursos[0].id_espaco
+        self.validar_recursos(
+            id_espaco,
+            ids_recursos,
+            exigir_independentes=True,
+        )
+        return id_espaco
 
     def possui_conflito(
         self,
         id_espaco: int,
         data_hora_inicio: datetime,
         data_hora_fim: datetime,
-        bloquear_espaco: bool = False,
+        bloquear_espaco: bool = True,
         ids_recursos: list[int] | None = None,
     ) -> bool:
         ids_recursos = ids_recursos or []
-        consulta_espaco = self.db.query(EspacoModelo).filter(
-            EspacoModelo.id == id_espaco
+        consulta_espaco = (
+            self.db.query(EspacoModelo)
+            .filter(EspacoModelo.id == id_espaco)
+            .with_for_update()
         )
-        if bloquear_espaco:
-            consulta_espaco = consulta_espaco.with_for_update()
         if consulta_espaco.first() is None:
             raise EntidadeNaoEncontradaErro("Espaço", id_espaco)
 
-        self.validar_recursos(id_espaco, ids_recursos)
+        self.validar_recursos(
+            id_espaco,
+            ids_recursos,
+            exigir_independentes=not bloquear_espaco,
+        )
 
         conflito_espaco = (
             self.db.query(ReservaAgendaModelo.id)
@@ -79,8 +133,23 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
             .first()
             is not None
         )
-        if conflito_espaco:
+        if conflito_espaco and bloquear_espaco:
             return True
+        if not bloquear_espaco:
+            conflito_reserva_espaco = (
+                self.db.query(ReservaAgendaModelo.id)
+                .filter(
+                    ReservaAgendaModelo.id_espaco == id_espaco,
+                    ReservaAgendaModelo.espaco_reservado.is_(True),
+                    ReservaAgendaModelo.situacao == "Confirmada",
+                    ReservaAgendaModelo.data_hora_inicio < data_hora_fim,
+                    ReservaAgendaModelo.data_hora_fim > data_hora_inicio,
+                )
+                .first()
+                is not None
+            )
+            if conflito_reserva_espaco:
+                return True
         if not ids_recursos:
             return False
         return (
@@ -106,9 +175,14 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
         id_espaco: int,
         periodos: list[PeriodoReserva],
         ids_recursos: list[int] | None = None,
+        espaco_reservado: bool = True,
     ) -> list[ReservaAgenda]:
         ids_recursos = ids_recursos or []
-        self.validar_recursos(id_espaco, ids_recursos)
+        self.validar_recursos(
+            id_espaco,
+            ids_recursos,
+            exigir_independentes=not espaco_reservado,
+        )
         recursos = (
             self.db.query(RecursoModelo)
             .filter(RecursoModelo.id.in_(ids_recursos))
@@ -123,6 +197,7 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
                 situacao="Confirmada",
                 id_solicitacao=id_solicitacao,
                 id_espaco=id_espaco,
+                espaco_reservado=espaco_reservado,
                 recursos=recursos,
             )
             for periodo in periodos
@@ -137,6 +212,7 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
                 situacao=modelo.situacao,
                 id_solicitacao=modelo.id_solicitacao,
                 id_espaco=modelo.id_espaco,
+                espaco_reservado=modelo.espaco_reservado,
                 ids_recursos=[recurso.id for recurso in recursos],
             )
             for modelo in modelos
@@ -174,6 +250,7 @@ class AgendamentoRepositorio(AgendamentoRepositorioContrato):
                 situacao=modelo.situacao,
                 id_solicitacao=modelo.id_solicitacao,
                 id_espaco=modelo.id_espaco,
+                espaco_reservado=modelo.espaco_reservado,
                 ids_recursos=[recurso.id for recurso in modelo.recursos],
             )
             for modelo in modelos

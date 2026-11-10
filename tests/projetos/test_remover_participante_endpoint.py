@@ -1,4 +1,5 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 
 
 def adicionar_participante(
@@ -18,12 +19,12 @@ def adicionar_participante(
 def test_responsavel_remove_participante(
     client, headers, usuarios, projeto
 ):
-    id_participante = usuarios[PerfilUsuario.MONITOR]
+    id_participante = usuarios[PerfilEspaco.MONITOR]
     adicionar_participante(client, headers, projeto["id"], id_participante)
 
     resposta = client.delete(
         f"/projetos/{projeto['id']}/participantes/{id_participante}",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
     )
 
     assert resposta.status_code == 200
@@ -36,7 +37,7 @@ def test_responsavel_remove_participante(
 def test_administrador_remove_participante(
     client, headers, usuarios, projeto
 ):
-    id_participante = usuarios[PerfilUsuario.MONITOR]
+    id_participante = usuarios[PerfilEspaco.MONITOR]
     adicionar_participante(client, headers, projeto["id"], id_participante)
 
     resposta = client.delete(
@@ -50,12 +51,12 @@ def test_administrador_remove_participante(
 def test_usuario_que_nao_e_responsavel_nao_remove_participante(
     client, headers, usuarios, projeto
 ):
-    id_participante = usuarios[PerfilUsuario.MONITOR]
+    id_participante = usuarios[PerfilEspaco.MONITOR]
     adicionar_participante(client, headers, projeto["id"], id_participante)
 
     resposta = client.delete(
         f"/projetos/{projeto['id']}/participantes/{id_participante}",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 403
@@ -65,7 +66,7 @@ def test_remover_usuario_que_nao_e_participante_retorna_nao_encontrado(
     client, headers, usuarios, projeto
 ):
     resposta = client.delete(
-        f"/projetos/{projeto['id']}/participantes/{usuarios[PerfilUsuario.MONITOR]}",
+        f"/projetos/{projeto['id']}/participantes/{usuarios[PerfilEspaco.MONITOR]}",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
     )
 
@@ -76,7 +77,7 @@ def test_remover_participante_de_projeto_inexistente(
     client, headers, usuarios
 ):
     resposta = client.delete(
-        f"/projetos/99999/participantes/{usuarios[PerfilUsuario.MONITOR]}",
+        f"/projetos/99999/participantes/{usuarios[PerfilEspaco.MONITOR]}",
         headers=headers[PerfilUsuario.ADMINISTRADOR],
     )
 
@@ -87,7 +88,7 @@ def test_remover_participante_rejeita_requisicao_sem_token(
     client, usuarios, projeto
 ):
     resposta = client.delete(
-        f"/projetos/{projeto['id']}/participantes/{usuarios[PerfilUsuario.MONITOR]}"
+        f"/projetos/{projeto['id']}/participantes/{usuarios[PerfilEspaco.MONITOR]}"
     )
 
     assert resposta.status_code == 401

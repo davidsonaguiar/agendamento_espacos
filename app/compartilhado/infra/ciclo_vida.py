@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.compartilhado.infra.banco_dados import Base, motor
+from app.compartilhado.infra.migracoes import migrar_papeis_usuarios
 from app.modulos.agendamento.infra.modelos import (
     ReservaAgendaModelo,
     SolicitacaoInteracaoModelo,
@@ -27,7 +28,11 @@ from app.modulos.agendamento.infra.modelos import (
     SolicitacaoHorarioModelo,
     solicitacao_usuario_tabela,
 )
-from app.modulos.usuarios.infra.modelos import UsuarioModelo
+from app.modulos.usuarios.infra.modelos import (
+    RefreshTokenModelo,
+    SessaoAutenticacaoModelo,
+    UsuarioModelo,
+)
 
 
 @asynccontextmanager
@@ -36,6 +41,8 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
         bind=motor,
         tables=[
             UsuarioModelo.__table__,
+            SessaoAutenticacaoModelo.__table__,
+            RefreshTokenModelo.__table__,
             espaco_usuario_tabela,
             EspacoModelo.__table__,
             EspacoHorarioFuncionamentoModelo.__table__,
@@ -53,4 +60,5 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
             agenda_reserva_recurso_tabela,
         ],
     )
+    migrar_papeis_usuarios(motor)
     yield

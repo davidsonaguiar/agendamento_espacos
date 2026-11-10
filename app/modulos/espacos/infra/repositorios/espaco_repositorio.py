@@ -9,11 +9,19 @@ from app.modulos.espacos.dominio.entidades import (
     Espaco,
     EspacoHorarioFuncionamento,
     EspacoPausaFuncionamento,
+    PerfilEspaco,
     EspacoUsuarioVinculado,
 )
-from app.modulos.espacos.infra.modelos import EspacoModelo, espaco_usuario_tabela
+from app.modulos.espacos.infra.modelos import (
+    EspacoModelo,
+    EspacoUsuarioModelo,
+    espaco_usuario_tabela,
+)
+from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.usuarios.infra.modelos import UsuarioModelo
 
 from .recurso_repositorio import RecursoRepositorio
+from .reservas_associadas import listar_reservas_por_espacos
 
 
 class EspacoRepositorio(EspacoRepositorioContrato):
@@ -38,7 +46,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         )
         if not modelo:
             return None
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
     def listar(
         self,
@@ -58,7 +66,18 @@ class EspacoRepositorio(EspacoRepositorioContrato):
             consulta = consulta.filter(EspacoModelo.disponibilidade == True)
 
         modelos = consulta.offset(skip).limit(limit).all()
-        return [self._converter(modelo) for modelo in modelos]
+        reservas_por_espaco, reservas_por_recurso = listar_reservas_por_espacos(
+            self.db,
+            [modelo.id for modelo in modelos],
+        )
+        return [
+            self._converter(
+                modelo,
+                reservas_por_espaco.get(modelo.id, []),
+                reservas_por_recurso,
+            )
+            for modelo in modelos
+        ]
 
     def buscar_por_id(self, id_espaco: int) -> Espaco | None:
         modelo = (
@@ -68,7 +87,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         )
         if not modelo:
             return None
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
 
     def salvar(self, espaco: Espaco) -> Espaco:
@@ -82,7 +101,7 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         self.db.add(modelo)
         self.db.flush()
         self.db.refresh(modelo)
-        return self._converter(modelo)
+        return self._converter_com_reservas(modelo)
 
     def atualizar(self, espaco: Espaco) -> Espaco:
         modelo = (
@@ -99,19 +118,37 @@ class EspacoRepositorio(EspacoRepositorioContrato):
 
             self.db.commit()
             self.db.refresh(modelo)
-            return self._converter(modelo)
+            return self._converter_com_reservas(modelo)
         raise ValueError("Espaço não encontrado no banco de dados.")
 
     def _consulta_com_relacionamentos(self):
         return self.db.query(EspacoModelo).options(
-            selectinload(EspacoModelo.usuarios_vinculados),
+            selectinload(EspacoModelo.vinculos_usuarios).selectinload(
+                EspacoUsuarioModelo.usuario
+            ),
             selectinload(EspacoModelo.horarios_funcionamento),
             selectinload(EspacoModelo.pausas_funcionamento),
             selectinload(EspacoModelo.recursos),
         )
 
+    def _converter_com_reservas(self, modelo: EspacoModelo) -> Espaco:
+        reservas_por_espaco, reservas_por_recurso = listar_reservas_por_espacos(
+            self.db,
+            [modelo.id],
+        )
+        return self._converter(
+            modelo,
+            reservas_por_espaco.get(modelo.id, []),
+            reservas_por_recurso,
+        )
+
     @staticmethod
-    def _converter(modelo: EspacoModelo) -> Espaco:
+    def _converter(
+        modelo: EspacoModelo,
+        reservas=None,
+        reservas_por_recurso=None,
+    ) -> Espaco:
+        reservas_por_recurso = reservas_por_recurso or {}
         return Espaco(
             id=modelo.id,
             nome=modelo.nome,
@@ -121,10 +158,15 @@ class EspacoRepositorio(EspacoRepositorioContrato):
             disponibilidade=modelo.disponibilidade,
             usuarios_vinculados=[
                 EspacoUsuarioVinculado(
-                    id_usuario=usuario.id,
-                    nome_completo=usuario.nome_completo,
+                    id_usuario=vinculo.usuario.id,
+                    nome_completo=vinculo.usuario.nome_completo,
+                    perfil_espaco=(
+                        PerfilEspaco(vinculo.perfil_espaco)
+                        if vinculo.perfil_espaco is not None
+                        else None
+                    ),
                 )
-                for usuario in modelo.usuarios_vinculados
+                for vinculo in modelo.vinculos_usuarios
             ],
             horarios_funcionamento=[
                 EspacoHorarioFuncionamento.model_validate(horario)
@@ -135,9 +177,13 @@ class EspacoRepositorio(EspacoRepositorioContrato):
                 for pausa in modelo.pausas_funcionamento
             ],
             recursos=[
-                RecursoRepositorio._converter(recurso)
+                RecursoRepositorio._converter(
+                    recurso,
+                    reservas=reservas_por_recurso.get(recurso.id, []),
+                )
                 for recurso in modelo.recursos
             ],
+            reservas=reservas or [],
         )
 
     def verificar_vinculo(self, id_espaco: int, id_usuario: int) -> bool:
@@ -148,8 +194,55 @@ class EspacoRepositorio(EspacoRepositorioContrato):
         resultado = self.db.execute(consulta).first()
         return resultado is not None
 
-    def adicionar_vinculo(self, id_espaco: int, id_usuario: int) -> None:
-        comando = espaco_usuario_tabela.insert().values(id_espaco=id_espaco, id_usuario=id_usuario)
+    def obter_perfil_vinculo(
+        self, id_espaco: int, id_usuario: int
+    ) -> PerfilEspaco | None:
+        consulta = select(espaco_usuario_tabela.c.perfil_espaco).where(
+            espaco_usuario_tabela.c.id_espaco == id_espaco,
+            espaco_usuario_tabela.c.id_usuario == id_usuario,
+        )
+        perfil = self.db.execute(consulta).scalar_one_or_none()
+        return PerfilEspaco(perfil) if perfil is not None else None
+
+    def listar_ids_espacos_por_perfil(
+        self, id_usuario: int, perfil_espaco: PerfilEspaco
+    ) -> list[int]:
+        consulta = select(espaco_usuario_tabela.c.id_espaco).where(
+            espaco_usuario_tabela.c.id_usuario == id_usuario,
+            espaco_usuario_tabela.c.perfil_espaco == perfil_espaco.value,
+        )
+        return list(self.db.execute(consulta).scalars())
+
+    def listar_usuarios_disponiveis(self, id_espaco: int) -> list[EspacoUsuarioVinculado]:
+        ids_vinculados = select(espaco_usuario_tabela.c.id_usuario).where(
+            espaco_usuario_tabela.c.id_espaco == id_espaco
+        )
+        usuarios = (
+            self.db.query(UsuarioModelo)
+            .filter(
+                UsuarioModelo.perfil == PerfilUsuario.MEMBRO,
+                UsuarioModelo.ativo.is_(True),
+                ~UsuarioModelo.id.in_(ids_vinculados),
+            )
+            .order_by(UsuarioModelo.nome_completo)
+            .all()
+        )
+        return [
+            EspacoUsuarioVinculado(
+                id_usuario=usuario.id,
+                nome_completo=usuario.nome_completo,
+            )
+            for usuario in usuarios
+        ]
+
+    def adicionar_vinculo(
+        self, id_espaco: int, id_usuario: int, perfil_espaco: PerfilEspaco
+    ) -> None:
+        comando = espaco_usuario_tabela.insert().values(
+            id_espaco=id_espaco,
+            id_usuario=id_usuario,
+            perfil_espaco=perfil_espaco.value,
+        )
         self.db.execute(comando)
         self.db.commit()
 

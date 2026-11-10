@@ -7,6 +7,8 @@ from app.modulos.agendamento.dominio.contratos import (
     ArmazenamentoAnexoContrato,
     SolicitacaoRepositorioContrato,
 )
+from app.modulos.espacos.dominio.contratos import EspacoRepositorioContrato
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 
 VALIDADE_URL_ASSINADA_SEGUNDOS = 600
@@ -17,9 +19,11 @@ class ObterUrlAnexoCasoDeUso:
         self,
         repositorio: SolicitacaoRepositorioContrato,
         armazenamento: ArmazenamentoAnexoContrato,
+        repo_espaco: EspacoRepositorioContrato,
     ):
         self.repositorio = repositorio
         self.armazenamento = armazenamento
+        self.repo_espaco = repo_espaco
 
     def executar(
         self, id_solicitacao: int, id_anexo: int, usuario: Usuario
@@ -30,13 +34,19 @@ class ObterUrlAnexoCasoDeUso:
         solicitacao = self.repositorio.buscar_por_id(id_solicitacao)
         if solicitacao is None:
             raise EntidadeNaoEncontradaErro("Solicitação", id_solicitacao)
-        pode_consultar_todas = usuario.perfil in (
-            PerfilUsuario.ADMINISTRADOR,
-            PerfilUsuario.COORDENADOR,
+        pode_gerenciar_espaco = (
+            usuario.perfil == PerfilUsuario.ADMINISTRADOR
+            or (
+                usuario.id is not None
+                and self.repo_espaco.obter_perfil_vinculo(
+                    solicitacao.id_espaco, usuario.id
+                )
+                == PerfilEspaco.COORDENADOR
+            )
         )
         if (
             solicitacao.id_solicitante != usuario.id
-            and not pode_consultar_todas
+            and not pode_gerenciar_espaco
         ):
             raise AcessoNegadoErro(
                 "Você só pode consultar anexos das suas próprias solicitações."

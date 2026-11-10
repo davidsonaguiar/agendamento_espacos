@@ -4,10 +4,12 @@ from .recurso_resposta import RecursoResposta
 from .criar_espaco import CriarEspaco
 from .atualizar_espaco import AtualizarEspaco
 from .usuario_vinculado_resposta import UsuarioVinculadoResposta
+from .vincular_usuario import VincularUsuario
 from .horario_funcionamento_resposta import HorarioFuncionamentoResposta
 from .pausa_resposta import PausaResposta
 from .espaco_resposta import EspacoResposta
 from .atualizar_horario import AtualizarHorario
 from .criar_pausa_funcionamento import CriarPausaFuncionamento
+from .reserva_associada_resposta import ReservaAssociadaResposta
 
-__all__ = ['CriarRecurso', 'AtualizarRecurso', 'RecursoResposta', 'CriarEspaco', 'AtualizarEspaco', 'UsuarioVinculadoResposta', 'HorarioFuncionamentoResposta', 'PausaResposta', 'EspacoResposta', 'AtualizarHorario', 'CriarPausaFuncionamento']
+__all__ = ['CriarRecurso', 'AtualizarRecurso', 'RecursoResposta', 'CriarEspaco', 'AtualizarEspaco', 'UsuarioVinculadoResposta', 'VincularUsuario', 'HorarioFuncionamentoResposta', 'PausaResposta', 'EspacoResposta', 'AtualizarHorario', 'CriarPausaFuncionamento', 'ReservaAssociadaResposta']

@@ -16,7 +16,6 @@ from .status_solicitacao import (
     StatusSolicitacao,
     TipoInteracaoSolicitacao,
 )
-from .tipo_solicitacao import TipoSolicitacao
 from .usuario_envolvido import UsuarioEnvolvido
 
 
@@ -34,7 +33,6 @@ class InteracaoSolicitacao(EntidadeBase):
 
 class Solicitacao(EntidadeBase):
     id: int | None = None
-    tipo: TipoSolicitacao
     finalidade: str
     urgencia: bool
     status: str = StatusSolicitacao.PENDENTE.value
@@ -42,6 +40,7 @@ class Solicitacao(EntidadeBase):
     id_projeto: int | None = None
     id_solicitante: int
     id_espaco: int
+    espaco_reservado: bool = True
     projeto: ProjetoRelacionadoSolicitacao | None = None
     espaco: EspacoRelacionadoSolicitacao | None = None
     solicitante: SolicitanteSolicitacao | None = None

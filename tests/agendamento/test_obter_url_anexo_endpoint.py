@@ -1,4 +1,5 @@
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from tests.agendamento.conftest import criar_solicitacao
 
 
@@ -7,7 +8,7 @@ def test_solicitante_obtem_url_assinada_do_anexo(
 ):
     resposta = client.get(
         f"/solicitacoes/{solicitacao['id']}/anexos/{anexo['id']}/url",
-        headers=headers[PerfilUsuario.SERVIDOR],
+        headers=headers[PerfilUsuario.MEMBRO],
     )
 
     assert resposta.status_code == 200
@@ -31,7 +32,7 @@ def test_coordenador_obtem_url_assinada_de_anexo_alheio(
 ):
     resposta = client.get(
         f"/solicitacoes/{solicitacao['id']}/anexos/{anexo['id']}/url",
-        headers=headers[PerfilUsuario.COORDENADOR],
+        headers=headers[PerfilEspaco.COORDENADOR],
     )
 
     assert resposta.status_code == 200
@@ -42,7 +43,7 @@ def test_usuario_sem_permissao_nao_obtem_url_de_anexo_alheio(
 ):
     resposta = client.get(
         f"/solicitacoes/{solicitacao['id']}/anexos/{anexo['id']}/url",
-        headers=headers[PerfilUsuario.MONITOR],
+        headers=headers[PerfilEspaco.MONITOR],
     )
 
     assert resposta.status_code == 403

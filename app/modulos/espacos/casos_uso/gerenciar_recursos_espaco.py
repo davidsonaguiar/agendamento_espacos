@@ -4,6 +4,7 @@ from app.modulos.espacos.dominio.contratos import (
     RecursoRepositorioContrato,
 )
 from app.modulos.espacos.dominio.entidades import Recurso
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
 from app.modulos.espacos.interface.esquemas import AtualizarRecurso, CriarRecurso
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 
@@ -25,11 +26,16 @@ class GerenciarRecursosEspacoCasoDeUso:
         limit: int = 100,
     ) -> list[Recurso]:
         self._validar_espaco(id_espaco)
-        pode_ver_indisponiveis = usuario_logado.perfil in {
-            PerfilUsuario.ADMINISTRADOR,
-            PerfilUsuario.COORDENADOR,
-            PerfilUsuario.MONITOR,
-        }
+        pode_ver_indisponiveis = (
+            usuario_logado.perfil == PerfilUsuario.ADMINISTRADOR
+            or (
+                usuario_logado.id is not None
+                and self.repo_espaco.obter_perfil_vinculo(
+                    id_espaco, usuario_logado.id
+                )
+                in {PerfilEspaco.COORDENADOR, PerfilEspaco.MONITOR}
+            )
+        )
         return self.repo_recurso.listar_por_espaco(
             id_espaco,
             apenas_disponiveis=not pode_ver_indisponiveis,

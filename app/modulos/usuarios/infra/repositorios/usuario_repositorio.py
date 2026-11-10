@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.compartilhado.dominio.erros import EntidadeNaoEncontradaErro
 from app.modulos.usuarios.dominio.contratos import UsuarioRepositorioContrato
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 from app.modulos.usuarios.infra.modelos import UsuarioModelo
@@ -75,3 +76,14 @@ class UsuarioRepositorio(UsuarioRepositorioContrato):
         self.db.refresh(usuario_modelo)
 
         return Usuario.model_validate(usuario_modelo)
+
+    def atualizar_senha(self, id_usuario: int, senha_codificada: str) -> None:
+        modelo = (
+            self.db.query(UsuarioModelo)
+            .filter(UsuarioModelo.id == id_usuario)
+            .first()
+        )
+        if modelo is None:
+            raise EntidadeNaoEncontradaErro("Usuário", id_usuario)
+        modelo.senha_codificada = senha_codificada
+        self.db.commit()

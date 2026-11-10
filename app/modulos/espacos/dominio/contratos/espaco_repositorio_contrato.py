@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 
-from app.modulos.espacos.dominio.entidades import Espaco
+from app.modulos.espacos.dominio.entidades import (
+    Espaco,
+    EspacoUsuarioVinculado,
+    PerfilEspaco,
+)
 
 
 class EspacoRepositorioContrato(ABC):
@@ -40,7 +44,27 @@ class EspacoRepositorioContrato(ABC):
         pass
 
     @abstractmethod
-    def adicionar_vinculo(self, id_espaco: int, id_usuario: int) -> None:
+    def obter_perfil_vinculo(
+        self, id_espaco: int, id_usuario: int
+    ) -> PerfilEspaco | None:
+        pass
+
+    @abstractmethod
+    def listar_ids_espacos_por_perfil(
+        self, id_usuario: int, perfil_espaco: PerfilEspaco
+    ) -> list[int]:
+        pass
+
+    @abstractmethod
+    def listar_usuarios_disponiveis(
+        self, id_espaco: int
+    ) -> list[EspacoUsuarioVinculado]:
+        pass
+
+    @abstractmethod
+    def adicionar_vinculo(
+        self, id_espaco: int, id_usuario: int, perfil_espaco: PerfilEspaco
+    ) -> None:
         pass
 
     @abstractmethod

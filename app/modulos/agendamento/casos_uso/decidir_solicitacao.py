@@ -63,6 +63,7 @@ class DecidirSolicitacaoCasoDeUso:
                     id_espaco=solicitacao.id_espaco,
                     periodos=periodos,
                     ids_recursos=solicitacao.ids_recursos,
+                    espaco_reservado=solicitacao.espaco_reservado,
                 )
 
             return self.repositorio.decidir(

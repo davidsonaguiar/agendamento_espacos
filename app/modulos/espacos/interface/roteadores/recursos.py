@@ -15,17 +15,16 @@ from app.modulos.espacos.interface.esquemas import (
     CriarRecurso,
     RecursoResposta,
 )
+from app.modulos.espacos.dominio.entidades import PerfilEspaco
+from app.modulos.espacos.interface.seguranca import VerificarPerfilEspaco
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 from app.modulos.usuarios.interface.seguranca_http import (
-    VerificarPerfil,
     obter_usuario_atual,
 )
 
 roteador = APIRouter()
 
-admin_ou_coordenador = VerificarPerfil(
-    [PerfilUsuario.ADMINISTRADOR, PerfilUsuario.COORDENADOR]
-)
+admin_ou_coordenador = VerificarPerfilEspaco([PerfilEspaco.COORDENADOR])
 
 
 @roteador.post(

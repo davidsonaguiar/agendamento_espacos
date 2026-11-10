@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.compartilhado.infra.banco_dados import Base
@@ -25,6 +25,7 @@ class ReservaAgendaModelo(Base):
         nullable=False,
         index=True,
     )
+    espaco_reservado = Column(Boolean, nullable=False, default=True)
     recursos = relationship(
         "RecursoModelo",
         secondary=agenda_reserva_recurso_tabela,

@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import relationship
 
 from app.compartilhado.infra.banco_dados import Base
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario
@@ -16,3 +17,8 @@ class UsuarioModelo(Base):
     senha_codificada = Column(String(255), nullable=False)
     perfil = Column(SQLEnum(PerfilUsuario), nullable=False)
     ativo = Column(Boolean, default=True)
+    vinculos_espacos = relationship(
+        "EspacoUsuarioModelo",
+        back_populates="usuario",
+        cascade="all, delete-orphan",
+    )
