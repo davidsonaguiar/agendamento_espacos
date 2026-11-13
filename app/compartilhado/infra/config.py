@@ -1,12 +1,16 @@
 from typing import Literal
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
     url_banco_dados: str
     chave_secreta: str
+    resend_api_key: SecretStr | None = None
+    resend_from_email: str = "Meu App <onboarding@resend.dev>"
+    url_frontend: str = "http://localhost:3000"
+    minutos_validade_token_recuperacao_senha: int = Field(default=30, gt=0)
     minutos_expiracao_token: int = 15
     dias_expiracao_refresh_token: int = 7
     refresh_cookie_secure: bool = True

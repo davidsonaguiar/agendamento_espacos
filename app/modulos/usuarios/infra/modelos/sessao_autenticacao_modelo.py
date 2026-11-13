@@ -56,6 +56,21 @@ class RefreshTokenModelo(Base):
     )
 
 
+class TokenRedefinicaoSenhaModelo(Base):
+    __tablename__ = "token_redefinicao_senha"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_usuario: Mapped[int] = mapped_column(
+        Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    hash_token: Mapped[str] = mapped_column(
+        String(64), nullable=False, unique=True, index=True
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    usado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 @event.listens_for(UsuarioModelo, "before_update")
 def revogar_sessoes_apos_alteracao_de_credenciais(_mapper, connection, usuario):
     estado = inspect(usuario)

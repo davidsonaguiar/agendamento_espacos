@@ -1,4 +1,10 @@
+from typing import Annotated
+
+from fastapi import Depends
+
 from app.compartilhado.infra.banco_dados import SessaoBD
+from app.compartilhado.infra.config import config
+from app.compartilhado.infra.email import ResendEmailServico
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioCasoDeUso
@@ -6,8 +12,13 @@ from app.modulos.usuarios.casos_uso.alterar_senha import AlterarSenhaCasoDeUso
 from app.modulos.usuarios.casos_uso.cadastrar_usuario import CadastrarUsuarioCasoDeUso
 from app.modulos.usuarios.casos_uso.gerenciar_tokens import GerenciarTokensCasoDeUso
 from app.modulos.usuarios.casos_uso.listar_usuarios import ListarUsuariosCasoDeUso
+from app.modulos.usuarios.casos_uso.recuperar_senha import (
+    RedefinirSenhaCasoDeUso,
+    SolicitarRecuperacaoSenhaCasoDeUso,
+)
 from app.modulos.usuarios.infra.repositorios import (
     SessaoAutenticacaoRepositorio,
+    TokenRedefinicaoSenhaRepositorio,
     UsuarioRepositorio,
 )
 
@@ -48,3 +59,31 @@ def pegar_caso_de_uso_alterar_senha(db: SessaoBD) -> AlterarSenhaCasoDeUso:
 
 def pegar_caso_de_uso_listar_usuarios(db: SessaoBD) -> ListarUsuariosCasoDeUso:
     return ListarUsuariosCasoDeUso(UsuarioRepositorio(db))
+
+
+def pegar_servico_email() -> ResendEmailServico:
+    return ResendEmailServico()
+
+
+def pegar_caso_de_uso_solicitar_recuperacao_senha(
+    db: SessaoBD,
+    servico_email: Annotated[
+        ResendEmailServico, Depends(pegar_servico_email)
+    ],
+) -> SolicitarRecuperacaoSenhaCasoDeUso:
+    return SolicitarRecuperacaoSenhaCasoDeUso(
+        usuarios=UsuarioRepositorio(db),
+        tokens=TokenRedefinicaoSenhaRepositorio(db),
+        enviar_email=servico_email.enviar,
+        url_frontend=config.url_frontend,
+        minutos_validade_token=config.minutos_validade_token_recuperacao_senha,
+    )
+
+
+def pegar_caso_de_uso_redefinir_senha(
+    db: SessaoBD,
+) -> RedefinirSenhaCasoDeUso:
+    return RedefinirSenhaCasoDeUso(
+        tokens=TokenRedefinicaoSenhaRepositorio(db),
+        codificador=CodificadorSenha(),
+    )

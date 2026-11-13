@@ -58,7 +58,7 @@ def migrar_papeis_usuarios(engine: Engine) -> None:
             conexao.execute(
                 text(
                     "UPDATE usuario SET perfil = 'MEMBRO' "
-                    "WHERE perfil IN "
+                    "WHERE CAST(perfil AS TEXT) IN "
                     "('COORDENADOR', 'SERVIDOR', 'MONITOR', 'ALUNO')"
                 )
             )

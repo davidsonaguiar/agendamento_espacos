@@ -9,18 +9,26 @@ from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioC
 from app.modulos.usuarios.casos_uso.cadastrar_usuario import CadastrarUsuarioCasoDeUso
 from app.modulos.usuarios.casos_uso.gerenciar_tokens import GerenciarTokensCasoDeUso
 from app.modulos.usuarios.casos_uso.listar_usuarios import ListarUsuariosCasoDeUso
+from app.modulos.usuarios.casos_uso.recuperar_senha import (
+    RedefinirSenhaCasoDeUso,
+    SolicitarRecuperacaoSenhaCasoDeUso,
+)
 from app.modulos.usuarios.dominio.entidades import PerfilUsuario, Usuario
 from app.modulos.usuarios.interface.dependencias import (
     pegar_caso_de_uso_alterar_senha,
     pegar_caso_de_uso_autenticacao,
     pegar_caso_de_uso_cadastro,
     pegar_caso_de_uso_listar_usuarios,
+    pegar_caso_de_uso_redefinir_senha,
+    pegar_caso_de_uso_solicitar_recuperacao_senha,
     pegar_caso_de_uso_tokens,
 )
 from app.modulos.usuarios.interface.esquemas import (
     AlterarSenha,
     CriarMembro,
     CriarUsuarioInterno,
+    RedefinirSenha,
+    SolicitarRecuperacaoSenha,
     TokenResposta,
     UsuarioLogin,
     UsuarioResposta,
@@ -32,6 +40,46 @@ from app.modulos.usuarios.interface.seguranca_http import (
 
 roteador = APIRouter(prefix="/usuarios", tags=["Usuários"])
 apenas_admin = VerificarPerfil([PerfilUsuario.ADMINISTRADOR])
+
+
+@roteador.post(
+    "/recuperar-senha",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Solicitar um link para redefinir a senha",
+)
+def solicitar_recuperacao_senha(
+    dados: SolicitarRecuperacaoSenha,
+    caso_de_uso: Annotated[
+        SolicitarRecuperacaoSenhaCasoDeUso,
+        Depends(pegar_caso_de_uso_solicitar_recuperacao_senha),
+    ],
+):
+    caso_de_uso.executar(str(dados.email))
+    return {
+        "detail": (
+            "Se o e-mail estiver cadastrado e ativo, você receberá "
+            "instruções para redefinir a senha."
+        )
+    }
+
+
+@roteador.post(
+    "/redefinir-senha",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Redefinir a senha usando o token enviado por e-mail",
+)
+def redefinir_senha(
+    dados: RedefinirSenha,
+    caso_de_uso: Annotated[
+        RedefinirSenhaCasoDeUso, Depends(pegar_caso_de_uso_redefinir_senha)
+    ],
+):
+    caso_de_uso.executar(
+        dados.token.get_secret_value(),
+        dados.nova_senha.get_secret_value(),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @roteador.post(
     "/servidor",
