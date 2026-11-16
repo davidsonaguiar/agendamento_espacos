@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from app.compartilhado.infra.banco_dados import SessaoBD
 from app.compartilhado.infra.config import config
-from app.compartilhado.infra.email import ResendEmailServico
+from app.compartilhado.infra.email import FastApiMailServico
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioCasoDeUso
@@ -61,14 +61,14 @@ def pegar_caso_de_uso_listar_usuarios(db: SessaoBD) -> ListarUsuariosCasoDeUso:
     return ListarUsuariosCasoDeUso(UsuarioRepositorio(db))
 
 
-def pegar_servico_email() -> ResendEmailServico:
-    return ResendEmailServico()
+def pegar_servico_email() -> FastApiMailServico:
+    return FastApiMailServico()
 
 
 def pegar_caso_de_uso_solicitar_recuperacao_senha(
     db: SessaoBD,
     servico_email: Annotated[
-        ResendEmailServico, Depends(pegar_servico_email)
+        FastApiMailServico, Depends(pegar_servico_email)
     ],
 ) -> SolicitarRecuperacaoSenhaCasoDeUso:
     return SolicitarRecuperacaoSenhaCasoDeUso(

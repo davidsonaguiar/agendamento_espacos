@@ -129,12 +129,13 @@ A tela do frontend deve coletar uma nova senha e enviar
 caracteres. Tokens inválidos, expirados ou já utilizados recebem HTTP 400. A
 redefinição também revoga as sessões autenticadas existentes.
 
-O envio é feito por `app/compartilhado/infra/email/resend_email_servico.py`. Configure
-`RESEND_API_KEY`, `RESEND_FROM_EMAIL` e `URL_FRONTEND` no ambiente. O remetente
-padrão `onboarding@resend.dev` é apenas para testes limitados pelo Resend; para
-envio a usuários reais, configure um domínio verificado no Resend e use o
-remetente desse domínio. A inicialização da API cria a tabela de tokens de
-redefinição automaticamente.
+O envio é feito por `app/compartilhado/infra/email/fastapi_mail_servico.py`.
+Configure `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_FROM_NAME`,
+`MAIL_SERVER` e `MAIL_PORT` no ambiente. `MAIL_FROM` deve conter somente o
+endereço de e-mail; o nome exibido fica em `MAIL_FROM_NAME`. Para SMTP com STARTTLS, mantenha
+`MAIL_STARTTLS=true` e `MAIL_SSL_TLS=false`; não habilite os dois ao mesmo
+tempo. A inicialização da API cria a tabela de tokens de redefinição
+automaticamente.
 
 ## Consultar usuário autenticado
 

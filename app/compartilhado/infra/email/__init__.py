@@ -1,3 +1,3 @@
-from .resend_email_servico import ResendEmailServico
+from .fastapi_mail_servico import FastApiMailServico
 
-__all__ = ["ResendEmailServico"]
+__all__ = ["FastApiMailServico"]
