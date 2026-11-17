@@ -31,6 +31,7 @@ from app.modulos.agendamento.infra.modelos import (
 from app.modulos.usuarios.infra.modelos import (
     RefreshTokenModelo,
     SessaoAutenticacaoModelo,
+    TokenRedefinicaoSenhaModelo,
     UsuarioModelo,
 )
 
@@ -43,6 +44,7 @@ async def ciclo_de_vida_app(_: FastAPI) -> AsyncGenerator[None, None]:
             UsuarioModelo.__table__,
             SessaoAutenticacaoModelo.__table__,
             RefreshTokenModelo.__table__,
+            TokenRedefinicaoSenhaModelo.__table__,
             espaco_usuario_tabela,
             EspacoModelo.__table__,
             EspacoHorarioFuncionamentoModelo.__table__,
