@@ -21,6 +21,7 @@ class Config(BaseSettings):
     minutos_validade_token_recuperacao_senha: int = Field(default=30, gt=0)
     minutos_expiracao_token: int = 15
     dias_expiracao_refresh_token: int = 7
+    rate_limit_storage_uri: str = "memory://"
     refresh_cookie_secure: bool = True
     refresh_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     origens_cors: str = "*"

@@ -1,9 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Query, Response, status
+from fastapi import APIRouter, Cookie, Depends, Query, Request, Response, status
 
 from app.compartilhado.dominio.erros import CredenciaisInvalidasErro
 from app.compartilhado.infra.config import config
+from app.compartilhado.infra.limitador_login import (
+    limpar_falhas_login,
+    registrar_falha_login,
+    verificar_bloqueio_login,
+)
 from app.modulos.usuarios.casos_uso.alterar_senha import AlterarSenhaCasoDeUso
 from app.modulos.usuarios.casos_uso.autenticar_usuario import AutenticarUsuarioCasoDeUso
 from app.modulos.usuarios.casos_uso.cadastrar_usuario import CadastrarUsuarioCasoDeUso
@@ -143,11 +148,19 @@ def cadastrar_usuario_interno(
     },
 )
 def login(
+    request: Request,
     resposta: Response,
     dados: UsuarioLogin,
     caso_de_uso: Annotated[AutenticarUsuarioCasoDeUso, Depends(pegar_caso_de_uso_autenticacao)]
 ):
-    tokens, refresh_token = caso_de_uso.executar(dados)
+    chave_login = verificar_bloqueio_login(request, dados.identificacao)
+    try:
+        tokens, refresh_token = caso_de_uso.executar(dados)
+    except CredenciaisInvalidasErro:
+        registrar_falha_login(chave_login)
+        raise
+
+    limpar_falhas_login(chave_login)
     _definir_cookie_refresh(resposta, refresh_token)
     return tokens
 

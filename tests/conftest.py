@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.compartilhado.infra.banco_dados import Base, pegar_banco_dados
 from app.compartilhado.infra.config import config
+from app.compartilhado.infra.limitador_login import limitador_login
 from app.compartilhado.infra.seguranca.codificador_senha import CodificadorSenha
 from app.compartilhado.infra.seguranca.jwt import JWT
 from app.modulos.agendamento.casos_uso.anexar_arquivo import (
@@ -111,9 +112,11 @@ def client(
     )
 
     try:
+        limitador_login.reset()
         with TestClient(app, base_url="http://localhost") as test_client:
             yield test_client
     finally:
+        limitador_login.reset()
         app.dependency_overrides.clear()
         app.router.lifespan_context = original_lifespan
 
