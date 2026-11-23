@@ -13,6 +13,8 @@ do usuário.
 | Criar conta de membro | `POST /usuarios/` | Público |
 | Cadastrar usuário interno | `POST /usuarios/interno` | Administrador |
 | Autenticar | `POST /usuarios/login` | Público |
+| Solicitar redefinição de senha | `POST /usuarios/recuperar-senha` | Público |
+| Redefinir senha | `POST /usuarios/redefinir-senha` | Token enviado por e-mail |
 | Renovar tokens | `POST /usuarios/refresh` | Cookie de refresh |
 | Encerrar sessão atual | `POST /usuarios/logout` | Cookie de refresh |
 | Encerrar todas as sessões | `POST /usuarios/logout-todos` | Usuário autenticado |
@@ -111,6 +113,30 @@ e no cliente.
 oito caracteres. Alterar a senha ou desativar a conta revoga todas as sessões.
 Uma nova autenticação é necessária após a troca.
 
+## Recuperação de senha por e-mail
+
+`POST /usuarios/recuperar-senha` recebe `{ "email": "..." }`. A resposta é
+sempre HTTP 202 com a mesma mensagem, independentemente de o e-mail existir ou
+a conta estar ativa. Para uma conta ativa, a API cria um token aleatório de uso
+único, armazena somente seu hash e envia um link para
+`{URL_FRONTEND}/recuperar-senha?token=...`. O token expira após
+`MINUTOS_VALIDADE_TOKEN_RECUPERACAO_SENHA` (30 minutos por padrão); uma nova
+solicitação invalida o token anterior.
+
+A tela do frontend deve coletar uma nova senha e enviar
+`{ "token": "...", "nova_senha": "..." }` para
+`POST /usuarios/redefinir-senha`. A senha precisa ter pelo menos oito
+caracteres. Tokens inválidos, expirados ou já utilizados recebem HTTP 400. A
+redefinição também revoga as sessões autenticadas existentes.
+
+O envio é feito por `app/compartilhado/infra/email/fastapi_mail_servico.py`.
+Configure `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_FROM_NAME`,
+`MAIL_SERVER` e `MAIL_PORT` no ambiente. `MAIL_FROM` deve conter somente o
+endereço de e-mail; o nome exibido fica em `MAIL_FROM_NAME`. Para SMTP com STARTTLS, mantenha
+`MAIL_STARTTLS=true` e `MAIL_SSL_TLS=false`; não habilite os dois ao mesmo
+tempo. A inicialização da API cria a tabela de tokens de redefinição
+automaticamente.
+
 ## Consultar usuário autenticado
 
 **Endpoint:** `GET /usuarios/me`.
@@ -155,8 +181,7 @@ público e login não exigem autenticação.
   ao salvar.
 - `ativo` inicia como verdadeiro; a alteração desse campo para falso revoga as
   sessões existentes. O módulo ainda não oferece endpoints administrativos
-  para editar, desativar, reativar ou excluir usuários, nem fluxo de recuperação
-  de senha.
+  para editar, desativar, reativar ou excluir usuários.
 - A listagem e a resposta pessoal incluem CPF, e-mail e vínculo; o esquema
   omite o hash de senha.
 - A inicialização migra perfis globais antigos para `Membro`; os antigos

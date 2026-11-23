@@ -1,14 +1,27 @@
 from typing import Literal
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Config(BaseSettings):
     url_banco_dados: str
     chave_secreta: str
+    mail_username: str | None = None
+    mail_password: SecretStr | None = None
+    mail_from: str | None = None
+    mail_from_name: str | None = None
+    mail_port: int = Field(default=587, gt=0, le=65535)
+    mail_server: str | None = None
+    mail_starttls: bool = True
+    mail_ssl_tls: bool = False
+    mail_use_credentials: bool = True
+    mail_validate_certs: bool = True
+    url_frontend: str = "http://localhost:3000"
+    minutos_validade_token_recuperacao_senha: int = Field(default=30, gt=0)
     minutos_expiracao_token: int = 15
     dias_expiracao_refresh_token: int = 7
+    rate_limit_storage_uri: str = "memory://"
     refresh_cookie_secure: bool = True
     refresh_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     origens_cors: str = "*"
