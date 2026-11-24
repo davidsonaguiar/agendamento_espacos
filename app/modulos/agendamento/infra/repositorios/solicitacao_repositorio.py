@@ -388,7 +388,7 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
         try:
             modelo = (
                 self.db.query(SolicitacaoModelo)
-                .options(joinedload(SolicitacaoModelo.horarios))
+                .options(selectinload(SolicitacaoModelo.horarios))
                 .filter(SolicitacaoModelo.id == id_solicitacao)
                 .with_for_update()
                 .first()
