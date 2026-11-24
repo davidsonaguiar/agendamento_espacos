@@ -390,7 +390,8 @@ class SolicitacaoRepositorio(SolicitacaoRepositorioContrato):
                 self.db.query(SolicitacaoModelo)
                 .options(selectinload(SolicitacaoModelo.horarios))
                 .filter(SolicitacaoModelo.id == id_solicitacao)
-                .with_for_update()
+                .populate_existing()
+                .with_for_update(of=SolicitacaoModelo)
                 .first()
             )
             if modelo is None:
