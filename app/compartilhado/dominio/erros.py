@@ -26,6 +26,23 @@ class RegraDeNegocioErro(ColabErro):
         )
 
 
+class TamanhoArquivoExcedidoErro(ColabErro):
+    def __init__(self, limite_bytes: int):
+        limite_kb = limite_bytes / 1024
+        super().__init__(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"O arquivo excede o limite de {limite_kb:g} KB.",
+        )
+
+
+class FalhaPersistenciaErro(ColabErro):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Não foi possível persistir os dados do anexo.",
+        )
+
+
 class AcessoNegadoErro(ColabErro):
     def __init__(
         self, detalhe: str = "Você não tem permissão para realizar esta ação."

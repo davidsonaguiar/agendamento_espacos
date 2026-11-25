@@ -2,7 +2,7 @@
 
 Esta documentação descreve o **modelo relacional proposto** para o Sistema de Gestão e Agendamento do COLAB (IFAL), incluindo espaços, recursos, solicitações, reservas e monitoria.
 
-> **Estado da implementação:** o diagrama representa o modelo-alvo do sistema. Atualmente, a aplicação cria as tabelas `usuario`, `espaco` e `espaco_usuario` na inicialização; as demais entidades do diagrama ainda não estão implementadas no esquema.
+> **Estado da implementação:** a aplicação implementa usuários, espaços, projetos, solicitações, horários, anexos, histórico de interações e reservas oficiais. Recursos podem ser vinculados a solicitações e reservas; turnos de monitoria permanecem fora do escopo atual.
 
 ---
 
@@ -19,7 +19,7 @@ erDiagram
         string vinculo_institucional
         string email
         string senha_codificada
-        string perfil
+        string perfil "Administrador ou Membro"
         boolean ativo
     }
 
@@ -28,6 +28,7 @@ erDiagram
         string descricao
         string finalidade
         int id_responsavel FK
+        int id_criador FK
         int quantidade_participantes
         string documentacao_base
     }
@@ -42,7 +43,7 @@ erDiagram
         int id PK
         string nome
         string descricao
-        string capacidade
+        int capacidade
         string bloco
         boolean disponibilidade
     }
@@ -50,6 +51,7 @@ erDiagram
     ESPACO_USUARIO {
         int id_espaco PK, FK
         int id_usuario PK, FK
+        string perfil_espaco "Coordenador ou Monitor; nulo para vínculo administrativo"
     }
 
     ESPACO_HORARIO_FUNCIONAMENTO {
@@ -57,6 +59,7 @@ erDiagram
         int dia_semana
         time hora_abertura
         time hora_fechamento
+        boolean ativo
         int id_espaco FK
     }
 
@@ -74,18 +77,25 @@ erDiagram
         string tipo
         boolean autorizacao_necessaria
         boolean disponibilidade
+        boolean reserva_independente
         int id_espaco FK
     }
 
     SOLICITACAO {
         int id PK
-        string tipo
+        string finalidade
         boolean urgencia
         string status
         string decisao_justificativa
+        boolean espaco_reservado
         int id_projeto FK
         int id_solicitante FK
         int id_espaco FK
+    }
+
+    SOLICITACAO_USUARIO {
+        int id_solicitacao PK, FK
+        int id_usuario PK, FK
     }
 
     SOLICITACAO_HORARIO {
@@ -115,6 +125,7 @@ erDiagram
         datetime data_hora_inicio
         datetime data_hora_fim
         string situacao
+        boolean espaco_reservado
         int id_solicitacao FK
         int id_espaco FK
     }
@@ -132,12 +143,15 @@ erDiagram
     }
 
     %% Relacionamentos
-    USUARIO ||--o{ PROJETO : "é responsável principal por"
-    USUARIO ||--o{ PROJETO_PARTICIPANTE : "participa como aluno em"
-    PROJETO ||--|{ PROJETO_PARTICIPANTE : "possui equipe formada por"
+    USUARIO ||--o{ PROJETO : "é responsável por"
+    USUARIO ||--o{ PROJETO : "cria"
+    USUARIO ||--o{ PROJETO_PARTICIPANTE : "participa de"
+    PROJETO ||--o{ PROJETO_PARTICIPANTE : "possui participantes"
     
     USUARIO ||--o{ SOLICITACAO : "realiza"
     PROJETO ||--o{ SOLICITACAO : "possui"
+    SOLICITACAO ||--o{ SOLICITACAO_USUARIO : "identifica pessoas envolvidas"
+    USUARIO ||--o{ SOLICITACAO_USUARIO : "está envolvido em"
     
     ESPACO ||--o{ RECURSO : "aloca equipamentos"
     ESPACO ||--o{ SOLICITACAO : "recebe pedido para"
@@ -172,14 +186,22 @@ erDiagram
 #### Tabela: `USUARIO`
 *   **Justificativa:** Atende ao RF-01 (Autenticação e acesso por perfil) e RF-02 (Cadastro de solicitante). Responsável por gerenciar os atores do sistema.
 *   **Atributos:**
-    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados obrigatórios para identificação formal do servidor/aluno no IFAL.
-    *   `perfil`: Define autorizações do usuário (Coordenador, Servidor Solicitante, Monitor).
+    *   `nome_completo`, `cpf`, `vinculo_institucional` (matrícula): Dados de identificação institucional do Membro.
+    *   `perfil`: Define o papel global (`Administrador` ou `Membro`). Coordenador e Monitor são papéis locais armazenados em `ESPACO_USUARIO.perfil_espaco`.
+
+#### Tabelas: `SESSAO_AUTENTICACAO` e `REFRESH_TOKEN`
+*   `sessao_autenticacao` representa uma sessão/dispositivo e guarda o usuário, criação, expiração e revogação. Cada JWT de acesso referencia a sessão por `sid`, permitindo invalidação imediata.
+*   `refresh_token` guarda somente o hash SHA-256 de cada refresh token, sua expiração e data de consumo. A rotação preserva hashes consumidos para detectar reutilização e revogar a sessão.
+*   A aplicação cria essas tabelas automaticamente em bancos existentes ao iniciar.
 
 #### Tabela: `PROJETO`
 *   **Justificativa:** Atende ao RF-04, registrando o contexto que motiva o uso do laboratório (pesquisa, extensão, disciplina).
 *   **Atributos:**
-    *   `descricao`, `finalidade`, `quantidade_participantes`: Informações que balizam a prioridade de análise pela coordenação.
+    *   `descricao`, `finalidade`, `quantidade_participantes`: Informações descritivas do projeto.
+    *   `id_responsavel`: Usuário responsável pelo projeto; pode ser diferente de quem o cadastrou.
+    *   `id_criador`: Usuário autenticado que cadastrou o projeto. A aplicação usa esse dado para autorizar sua exclusão, junto com Administradores.
     *   `documentacao_base`: Link (ex: SIGAA, SUAP) comprovando a existência formal do projeto no instituto.
+    *   O projeto não possui status próprio na implementação atual.
 
 #### Tabela: `PROJETO_PARTICIPANTE`
 *   **Justificativa:** Atende à Regra de Negócio RN-19, identificando as pessoas relevantes e autorizadas a permanecer no laboratório sob aquele projeto. É uma tabela associativa (N:N).
@@ -191,11 +213,12 @@ erDiagram
 #### Tabela: `ESPACO`
 *   **Justificativa:** Gestão dos ambientes físicos (salas/bancadas) alvos do agendamento (RN-01).
 *   **Atributos:** `nome`, `descricao`, `capacidade`, `bloco`, `disponibilidade`.
-*   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade e bloco de até 50 caracteres e disponibilidade booleana.
+*   **Implementação atual:** tabela `espaco`, com nome único, descrição de até 255 caracteres, capacidade inteira, bloco de até 50 caracteres e disponibilidade booleana.
 
 #### Tabela associativa: `ESPACO_USUARIO`
+*   **Atributos:** `id_espaco`, `id_usuario` e `perfil_espaco`. O par espaço/usuário é único; cada Membro pode ter no máximo um perfil local por espaço (`Coordenador` ou `Monitor`). Um usuário pode exercer papéis diferentes em espaços diferentes. Administradores têm acesso global e não dependem de vínculo local; vínculos administrativos existentes podem ter `perfil_espaco` nulo.
 *   **Implementação atual:** tabela `espaco_usuario`, que relaciona espaços a usuários (relação N:N). As colunas `id_espaco` e `id_usuario` formam a chave primária composta e são chaves estrangeiras para `espaco.id` e `usuario.id`, respectivamente.
-*   **Regra da aplicação:** os vínculos são permitidos somente para usuários com perfil Coordenador ou Monitor. Esta tabela associativa não está representada no modelo conceitual anterior e foi incluída para refletir a implementação atual.
+*   **Regra da aplicação:** cada vínculo associa um Membro a um espaço com um papel local de Coordenador ou Monitor. Administradores têm acesso global; a migração pode preservar vínculos administrativos antigos sem papel local. Esta tabela associativa não estava representada no modelo conceitual inicial e foi incluída para refletir a implementação atual.
 
 #### Tabelas: `ESPACO_HORARIO_FUNCIONAMENTO` e `ESPACO_PAUSA_FUNCIONAMENTO`
 *   **Justificativa:** Atendem diretamente às regras RN-11 e RN-12. O laboratório funciona em horários padronizados, mas requer fechamentos sazonais.
@@ -206,38 +229,156 @@ erDiagram
 #### Tabela: `RECURSO`
 *   **Justificativa:** Ferramentas, equipamentos e máquinas físicas inseridas nos espaços.
 *   **Atributos:** 
+    *   `nome`, `tipo`: Identificação e classificação do recurso.
     *   `autorizacao_necessaria`: Sinaliza equipamentos de risco (ex: serra circular) que barram aprovações automáticas (RN-13).
+    *   `disponibilidade`: Indica se o recurso está disponível para uso.
+    *   `reserva_independente`: Indica se o recurso pode ser reservado sem reservar o espaço (padrão `false`).
     *   `id_espaco`: Onde fisicamente aquele recurso se encontra.
+*   **Implementação atual:** tabela `recurso`, com nome e tipo de até 100 caracteres, flags booleanas e chave estrangeira obrigatória para `espaco.id`. A exclusão da API é lógica: define `disponibilidade=false`.
 
 ---
 
 ### 📅 3. Core: Fluxo de Solicitação e Agendamento
 
 #### Tabela: `SOLICITACAO`
-*   **Justificativa:** O "pedido" de uso feito pelo servidor (RF-03 e FB-01).
+*   **Justificativa:** O "pedido" de uso feito por um Membro (RF-03 e FB-01).
 *   **Atributos:**
     *   `urgencia`: Requisito RF-07, informa ao gestor prioridade de análise.
-    *   `status`: Situação do pedido (Pendente, Aprovado, Rejeitado, Replanejado).
-    *   `decisao_justificativa`: O coordenador *precisa* registrar o motivo da sua decisão (RF-09).
+    *   `espaco_reservado`: Indica se a solicitação reserva o espaço inteiro; para reserva independente de recurso, fica falso e `id_espaco` identifica o espaço físico do recurso.
+    *   `status`: Situação do pedido (`Pendente`, `AguardandoComplementacao`, `AguardandoRespostaProposta`, `Aprovado`, `Rejeitado` ou `Cancelada`).
+    *   `decisao_justificativa`: O Administrador ou Coordenador do espaço registra o motivo da decisão (RF-09).
+*   **Implementação atual:** Administradores podem aprovar, rejeitar, solicitar complementação ou propor novos horários/recursos em qualquer espaço. Coordenadores têm essas permissões apenas nos espaços em que estão vinculados como Coordenador. O solicitante pode responder à complementação ou aceitar/recusar uma proposta. As interações são mantidas para histórico; aceitar uma proposta aprova a solicitação e gera reservas atomicamente.
 
 #### Tabela: `SOLICITACAO_HORARIO`
-*   **Justificativa:** Substitui colunas rígidas de "data-hora" na tabela de solicitação principal, permitindo **recorrência** (ex: toda segunda-feira do mês) e facilitando o replanejamento pontual de dias pelo coordenador sem cancelar toda a solicitação (RF-11).
-*   **Atributos:** `data_reserva` (DATE), `hora_inicio` e `hora_fim` (TIME).
+*   **Implementação atual:** cada horário solicitado é salvo em uma linha da tabela `solicitacao_horario`, ligada à solicitação por `id_solicitacao`.
+*   **Atributos:** `data_reserva` (DATE), `hora_inicio` e `hora_fim` (TIME). A API exige ao menos um horário, data/início futuros e hora final posterior à inicial.
 
 #### Tabela: `SOLICITACAO_RECURSO`
-*   **Justificativa:** Uma solicitação a um espaço pode exigir o uso de N máquinas/equipamentos específicos.
+*   **Justificativa:** Uma solicitação pode reservar o espaço inteiro, opcionalmente com recursos, ou apenas recursos independentes.
+*   **Implementação atual:** quando o espaço inteiro é solicitado, os recursos devem pertencer a ele. Para reserva somente de recursos, todos devem ser independentes, disponíveis e pertencer ao mesmo espaço físico.
 
 #### Tabela: `ANEXO`
-*   **Justificativa:** Atende ao RF-05. Alguns equipamentos (como impressoras 3D ou máquinas CNC) e serviços exigem análise técnica de arquivos (modelos STL, PDFs) antes da aprovação da solicitação (FB-02).
-*   **Atributos:** `nome_arquivo`, `url_caminho`, `tipo_arquivo`.
+*   **Implementação atual:** a tabela `anexo` guarda metadados e o caminho interno do objeto no Supabase Storage; o bucket é privado, portanto `url_caminho` não é uma URL pública.
+*   **Atributos:** `nome_arquivo`, `url_caminho`, `tipo_arquivo`, `data_upload` e `id_solicitacao`.
+*   **Regras atuais:** aceita PDF e DOCX de até 150 KiB por arquivo. O download é feito por URL assinada temporária.
+
+### Migração no Supabase
+
+Ao iniciar, a aplicação executa a migração de perfis: adiciona `perfil_espaco`
+à tabela `espaco_usuario` se necessário, preserva os vínculos antigos de
+Coordenador e Monitor como perfis locais e converte perfis globais antigos
+para `Membro` (mantendo Administrador). Ela também cria tabelas ausentes via
+`Base.metadata.create_all`; isso não substitui migrações para outras alterações
+de schema. Para atualizar um banco Supabase já utilizado com as demais tabelas
+de solicitações e agenda, execute a migração pelo SQL Editor do Supabase:
+
+```sql
+CREATE TABLE IF NOT EXISTS public.solicitacao_horario (
+    id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    data_reserva date NOT NULL,
+    hora_inicio time NOT NULL,
+    hora_fim time NOT NULL,
+    id_solicitacao integer NOT NULL
+        REFERENCES public.solicitacao(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_solicitacao_horario_id_solicitacao
+    ON public.solicitacao_horario (id_solicitacao);
+
+CREATE TABLE IF NOT EXISTS public.anexo (
+    id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    nome_arquivo varchar(255) NOT NULL,
+    url_caminho varchar(500) NOT NULL,
+    tipo_arquivo varchar(100) NOT NULL,
+    data_upload timestamptz NOT NULL,
+    id_solicitacao integer NOT NULL
+        REFERENCES public.solicitacao(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_anexo_id_solicitacao
+    ON public.anexo (id_solicitacao);
+
+CREATE TABLE IF NOT EXISTS public.agenda_reserva (
+    id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    data_hora_inicio timestamp without time zone NOT NULL,
+    data_hora_fim timestamp without time zone NOT NULL,
+    situacao varchar(50) NOT NULL DEFAULT 'Confirmada',
+    espaco_reservado boolean NOT NULL DEFAULT true,
+    id_solicitacao integer NOT NULL
+        REFERENCES public.solicitacao(id) ON DELETE CASCADE,
+    id_espaco integer NOT NULL
+        REFERENCES public.espaco(id) ON DELETE CASCADE
+);
+
+ALTER TABLE public.solicitacao
+    DROP COLUMN IF EXISTS tipo;
+
+ALTER TABLE public.solicitacao
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.agenda_reserva
+    ADD COLUMN IF NOT EXISTS espaco_reservado boolean NOT NULL DEFAULT true;
+
+DROP TYPE IF EXISTS public.tipo_solicitacao;
+
+CREATE INDEX IF NOT EXISTS ix_agenda_reserva_data_hora_inicio
+    ON public.agenda_reserva (data_hora_inicio);
+
+CREATE INDEX IF NOT EXISTS ix_agenda_reserva_id_solicitacao
+    ON public.agenda_reserva (id_solicitacao);
+
+CREATE INDEX IF NOT EXISTS ix_agenda_reserva_id_espaco
+    ON public.agenda_reserva (id_espaco);
+
+CREATE TABLE IF NOT EXISTS public.solicitacao_recurso (
+    id_solicitacao integer NOT NULL
+        REFERENCES public.solicitacao(id) ON DELETE CASCADE,
+    id_recurso integer NOT NULL
+        REFERENCES public.recurso(id) ON DELETE CASCADE,
+    PRIMARY KEY (id_solicitacao, id_recurso)
+);
+
+CREATE TABLE IF NOT EXISTS public.agenda_reserva_recurso (
+    id_agenda integer NOT NULL
+        REFERENCES public.agenda_reserva(id) ON DELETE CASCADE,
+    id_recurso integer NOT NULL
+        REFERENCES public.recurso(id) ON DELETE CASCADE,
+    PRIMARY KEY (id_agenda, id_recurso)
+);
+
+CREATE TABLE IF NOT EXISTS public.solicitacao_interacao (
+    id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    tipo varchar(50) NOT NULL,
+    situacao varchar(50) NOT NULL,
+    mensagem text NOT NULL,
+    dados json,
+    data_criacao timestamptz NOT NULL DEFAULT now(),
+    id_solicitacao integer NOT NULL
+        REFERENCES public.solicitacao(id) ON DELETE CASCADE,
+    id_usuario integer NOT NULL
+        REFERENCES public.usuario(id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IF NOT EXISTS ix_solicitacao_interacao_tipo
+    ON public.solicitacao_interacao (tipo);
+
+CREATE INDEX IF NOT EXISTS ix_solicitacao_interacao_id_solicitacao
+    ON public.solicitacao_interacao (id_solicitacao);
+```
+
+Confirme que `public.solicitacao.id` usa o tipo `integer` antes de executar a migração. Além das tabelas, crie o bucket privado e configure as variáveis de ambiente descritas em [casos de uso de solicitações](./casos_de_uso/agendamento.md#configuração-do-supabase-storage).
 
 ---
 
 ### 📆 4. Efetivação: Agenda e Rastreabilidade
 
 #### Tabelas: `AGENDA_RESERVA` e `AGENDA_RESERVA_RECURSO`
+*   **Implementação atual de `AGENDA_RESERVA`:** a aprovação cria uma linha por horário solicitado, com `situacao=Confirmada`. `espaco_reservado` distingue reserva integral do espaço de reserva independente de recurso; `id_espaco` identifica o espaço físico e as reservas guardam os recursos aprovados. Conflitos por espaço e recurso são verificados e a disponibilidade considera apenas reservas confirmadas.
 *   **Justificativa:** Representa o tempo bloqueado oficialmente na agenda após uma `SOLICITACAO` ter sido aprovada (RF-10 e RF-12).
-*   **Diferencial:** Ao isolar os recursos aprovados na tabela `AGENDA_RESERVA_RECURSO`, o sistema consegue checar individualmente conflitos de ferramentas. (Ex: A sala pode estar disponível, mas o osciloscópio solicitado já está em uso).
+*   **Diferencial:** Ao isolar os recursos aprovados na tabela `AGENDA_RESERVA_RECURSO`, o sistema consegue checar individualmente conflitos de ferramentas. (Ex: O espaço pode estar livre, mas o osciloscópio solicitado já está em uso).
+
+#### Tabela: `SOLICITACAO_INTERACAO`
+*   **Implementação atual:** guarda cada pedido de complementação, resposta, proposta de replanejamento e resposta do solicitante, com autor, data, estado e dados JSON da proposta de horários/recursos.
 
 #### Tabela: `MONITOR_TURNO`
 *   **Justificativa:** Atende ao RF-14 e RF-15, viabilizando histórico, segurança e rastreabilidade da operação do laboratório.

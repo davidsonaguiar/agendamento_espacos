@@ -1,3 +1,5 @@
 {
-    "python.terminal.useEnvFile": true
+    "python.terminal.useEnvFile": true,
+    "editor.fontSize": 16,
+    "editor.fontFamily": "Dank Mono, 'JetBrains Mono', 'Courier New', monospace"
 }

@@ -29,70 +29,101 @@ Todos os desenvolvedores da equipe devem seguir estas diretrizes obrigatórias a
 ### 1. Separação de Preocupações (Camadas)
 O sistema é dividido em módulos isolados, e cada módulo possui 4 camadas restritas:
 *   **Domínio (`dominio/`):** É o coração do software. Contém as entidades puras, as exceções de negócio e os **Contratos** (Interfaces Abstratas). **Regra de Ouro:** Esta camada *nunca* deve importar ferramentas externas (nada de FastAPI, SQLAlchemy ou bibliotecas de terceiros).
-*   **Casos de Uso (`casos_uso/`):** Orquestra o fluxo da aplicação (ex: `CadastrarServidorCasoDeUso`). Só pode importar arquivos do Domínio.
+*   **Casos de Uso (`casos_uso/`):** Orquestra o fluxo da aplicação (ex: `CadastrarUsuarioCasoDeUso`). Só pode importar arquivos do Domínio.
 *   **Infraestrutura (`infra/`):** Onde o sistema se conecta com o mundo externo. Aqui ficam os Modelos ORM, a conexão com o PostgreSQL, criptografia e integrações. Essas classes *implementam* os Contratos definidos no Domínio.
 *   **Interface (`interface/`):** A porta de entrada da aplicação. Lida exclusivamente com HTTP, validação de JSONs de entrada/saída (Schemas Pydantic) e injeção de dependências.
 
 ### 2. Princípios SOLID Aplicados
-*   **SRP (Responsabilidade Única):** Cada arquivo tem apenas um papel. O Roteador (`roteador.py`) não salva no banco; o Repositório (`repositorios.py`) não valida JSON.
-*   **DIP (Inversão de Dependência):** Nossos Casos de Uso **nunca** dependem de implementações concretas (ex: `UsuarioRepositorio`). Eles dependem exclusivamente de abstrações (ex: `UsuarioRepositorioContrato`). A injeção da dependência real (Factory) é feita pela camada de Interface no arquivo `dependencias.py`. Isso permite que qualquer tecnologia (como o banco de dados) seja trocada no futuro sem alterar uma única linha das regras de negócio.
+*   **SRP (Responsabilidade Única):** Cada arquivo tem apenas um papel. Os roteadores, contratos, modelos ORM e repositórios são organizados em subpacotes por entidade ou funcionalidade.
+*   **DIP (Inversão de Dependência):** Nossos Casos de Uso **nunca** dependem de implementações concretas (ex: `UsuarioRepositorio`). Eles dependem exclusivamente de abstrações (ex: `UsuarioRepositorioContrato`). A injeção da dependência real (Factory) é feita pela camada de Interface em `dependencias.py`. Isso permite que qualquer tecnologia (como o banco de dados) seja trocada no futuro sem alterar uma única linha das regras de negócio.
+
+Os subpacotes `contratos`, `entidades`, `modelos`, `repositorios`, `esquemas` e
+`roteadores` mantêm uma classe ou conjunto coeso de operações por arquivo. Seus
+`__init__.py` exportam os símbolos do pacote para facilitar os imports existentes;
+novos arquivos devem ser adicionados ao subpacote correspondente.
 
 ### Estrutura de Diretórios Atual
 ```text
 app/
 ├── compartilhado/
-│   ├── dominio/                         # Erros e entidade base
-│   │   ├── erros.py
-│   │   └── entidade_base.py
+│   ├── dominio/                         # Entidade base e erros compartilhados
 │   └── infra/
-│       ├── banco_dados.py
-│       ├── config.py
-│       ├── ciclo_vida.py
+│       ├── banco_dados.py               # Sessão e dependência compartilhada do banco
 │       └── seguranca/
 └── modulos/
-    ├── usuarios/                        # Cadastro, autenticação e listagem de usuários
+    ├── espacos/                           # Espaços, horários, pausas e vínculos
     │   ├── casos_uso/
     │   ├── dominio/
+    │   │   ├── contratos/
+    │   │   └── entidades/
     │   ├── infra/
-    │   └── interface/                   # Rotas, esquemas e dependências HTTP
-    └── espacos/                         # Cadastro, consulta e gestão de espaços físicos
+    │   │   ├── modelos/
+    │   │   └── repositorios/
+    │   └── interface/
+    │       ├── esquemas/
+    │       └── roteadores/
+    ├── projetos/                          # Projetos e participantes
+    │   ├── casos_uso/
+    │   ├── dominio/
+    │   │   ├── contratos/
+    │   │   └── entidades/
+    │   ├── infra/
+    │   │   ├── modelos/
+    │   │   └── repositorios/
+    │   └── interface/
+    │       ├── esquemas/
+    │       └── roteadores/
+    ├── agendamento/                       # Solicitações, disponibilidade e reservas
+    │   ├── casos_uso/
+    │   ├── dominio/ (contratos/, entidades/)
+    │   ├── infra/ (modelos/, repositorios/)
+    │   └── interface/ (esquemas/, roteadores/)
+    └── usuarios/                          # Cadastro, autenticação e consulta
         ├── casos_uso/
-        ├── dominio/
-        ├── infra/
-        └── interface/
+        ├── dominio/ (contratos/, entidades/)
+        ├── infra/ (modelos/, repositorios/)
+        └── interface/ (esquemas/, roteadores/)
 
-main.py                                  # Entrypoint da aplicação
+main.py                                  # Ponto de entrada da aplicação
 requirements.txt
-docs/                                    # Documentação da API e do modelo de dados proposto
+docs/
+├── banco_dados.md
+└── casos_de_uso/
+    ├── espacos.md
+    ├── agendamento.md
+    ├── projetos.md
+    └── usuarios.md
 ```
 
 ## ⚙️ Funcionalidades
 
-### Implementado: usuários e autenticação
+### Implementado
 
-* Cadastro público de servidores solicitantes e cadastro de usuários internos por administradores ou coordenadores, com restrições para criação de perfis administrativos.
-* Listagem de usuários por administradores e coordenadores, com filtros opcionais por perfil e situação (ativo/inativo).
-* Login por CPF ou e-mail, com emissão de token JWT.
-* Consulta dos dados do usuário autenticado.
-* Perfis disponíveis: Administrador, Coordenador, Servidor, Monitor e Aluno.
-* Endpoint de status da API em `GET /`.
+* Cadastro, autenticação por CPF ou e-mail, consulta do usuário autenticado e listagem administrativa de usuários. Os perfis globais são Administrador e Membro; Coordenador e Monitor são atribuídos por espaço.
+* Cadastro e manutenção de espaços, recursos, horários de funcionamento, pausas e vínculos entre espaços e usuários. Recursos podem ser cadastrados, atualizados, listados por espaço e indisponibilizados sem exclusão física.
+* Cadastro, consulta e atualização de projetos, além do gerenciamento de participantes. Projetos registram separadamente o responsável e o usuário criador.
+* Membros criam projetos para si e consultam projetos em que são responsáveis ou participantes. Administradores podem consultar todos; perfis locais de Coordenador e Monitor não ampliam o acesso a projetos.
+* A exclusão de projetos é permitida ao criador do projeto ou a um Administrador.
+* Cadastro e acompanhamento de solicitações: Membros criam pedidos com um ou mais horários, consultam os próprios pedidos e enviam anexos PDF/DOCX; Administradores consultam todos, e Coordenadores podem consultar e decidir solicitações somente dos espaços em que atuam.
+* Consulta de disponibilidade e reservas confirmadas pelo módulo de agendamento; aprovações geram reservas oficiais na agenda.
+* Endpoint de verificação da API em `GET /`.
 
-### Implementado: espaços físicos
+Os casos de uso, as regras de negócio, as restrições e os fluxos estão detalhados por módulo:
 
-* Cadastro e atualização de espaços.
-* Listagem de espaços com visibilidade conforme o perfil autenticado.
-* Desativação e reativação de espaços.
-* Vínculo e remoção de vínculos de coordenadores e monitores a espaços.
+* [Usuários](docs/casos_de_uso/usuarios.md)
+* [Espaços](docs/casos_de_uso/espacos.md)
+* [Projetos](docs/casos_de_uso/projetos.md)
+* [Solicitações e agendamentos](docs/casos_de_uso/agendamento.md)
 
-As rotas, formatos de entrada e requisitos de autenticação estão descritos em [docs/api.md](docs/api.md). O cadastro e a gestão de equipamentos/recursos ainda não possuem rotas implementadas.
+A documentação interativa da API é gerada pelo FastAPI em `/docs` (Swagger UI) e `/redoc`.
 
-### Planejado: gestão do laboratório
+### Ainda não implementado
 
-Projetos e participantes, equipamentos/recursos, horários de funcionamento, solicitações de agendamento, anexos, agenda e turnos de monitoria fazem parte do escopo planejado. Esses recursos ainda não possuem rotas implementadas nesta versão.
+Associações de recursos às solicitações/reservas e turnos de monitoria permanecem para etapas futuras.
 
 ## 💾 Estrutura do Banco de Dados
 
-O modelo relacional proposto para o sistema completo está em [docs/banco_dados.md](docs/banco_dados.md). Atualmente, a aplicação cria as tabelas `usuario`, `espaco` e `espaco_usuario`; as demais entidades do modelo ainda não estão implementadas no esquema da aplicação.
+O modelo e o dicionário de dados estão em [`docs/banco_dados.md`](docs/banco_dados.md). A aplicação registra atualmente as tabelas de usuários, espaços (incluindo horários, pausas e vínculos), projetos (incluindo participantes), solicitações (incluindo usuários envolvidos, horários e anexos) e reservas na agenda. As demais entidades do diagrama descrevem funcionalidades futuras.
 
 ## 🛠️ Como Executar o Projeto Localmente
 
@@ -101,6 +132,42 @@ O modelo relacional proposto para o sistema completo está em [docs/banco_dados.
 * Python 3.11+
 
 * Docker e Docker Compose (Para o banco de dados)
+
+### Testes de endpoints
+
+Os testes exercitam a API HTTP com `TestClient` e um banco SQLite isolado por
+teste. O armazenamento de anexos é substituído por um fake, sem chamadas ao
+Supabase ou ao banco de desenvolvimento.
+
+No Windows, abra o PowerShell na pasta do projeto e prepare o ambiente:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+```
+
+Para executar todos os testes:
+
+```powershell
+python -m pytest
+```
+
+Para executar somente os testes de agendamento:
+
+```powershell
+python -m pytest tests\agendamento
+```
+
+Para executar um arquivo específico e exibir um resumo conciso:
+
+```powershell
+python -m pytest tests\agendamento\test_consultas_agendamento_endpoint.py -q
+```
+
+O comando `python -m pytest` também funciona sem ativar o ambiente virtual se
+as dependências de `requirements-dev.txt` já estiverem instaladas no Python
+em uso.
 
 ### Passos
 
@@ -147,17 +214,52 @@ O modelo relacional proposto para o sistema completo está em [docs/banco_dados.
    ORIGENS_CORS=*
    HOSTS_PERMITIDOS=localhost,127.0.0.1
    PERMITE_CREDENCIAIS_CORS=false
+   MAIL_USERNAME=seu_email
+   MAIL_PASSWORD=sua_senha
+   MAIL_FROM=seu_email
+   MAIL_FROM_NAME=Nome do sistema
+   MAIL_SERVER=smtp.seuprovedor.com
+   MAIL_PORT=587
+   MAIL_STARTTLS=true
+   MAIL_SSL_TLS=false
+   MAIL_USE_CREDENTIALS=true
+   MAIL_VALIDATE_CERTS=true
    ```
 
-   `ORIGENS_CORS` recebe origens completas, separadas por vírgula (por exemplo, `http://localhost:5173`). `*` permite qualquer origem e não pode ser combinado com credenciais CORS. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
+   `ORIGENS_CORS` recebe origens completas, separadas por vírgula. Para usar cookies em chamadas de navegador entre origens, liste as origens explicitamente, habilite `PERMITE_CREDENCIAIS_CORS` e envie as requisições com credenciais; `*` não pode ser combinado com credenciais. `REFRESH_COOKIE_SECURE=false` é apenas para desenvolvimento local em HTTP; em produção use HTTPS e `true`. `HOSTS_PERMITIDOS` recebe apenas hosts, sem esquema ou porta.
+
+   Crie também um bucket **privado** no Supabase Storage chamado `anexos-solicitacoes`, com limite de 153.600 bytes e os tipos PDF e DOCX permitidos. `SUPABASE_SERVICE_ROLE_KEY` deve ficar somente no ambiente seguro do backend; nunca a exponha no frontend ou no controle de versão. Para o schema de um banco existente, siga a migração descrita em [`docs/banco_dados.md`](docs/banco_dados.md#migração-no-supabase).
 
 6. **Crie as tabelas iniciais:**
-   Ao iniciar, a aplicação cria as tabelas `usuario`, `espaco` e `espaco_usuario` caso ainda não existam. Essa criação automática não substitui migrações/versionamento de esquema para alterações futuras.
+   Ao iniciar, a aplicação cria tabelas ausentes e migra os perfis globais
+   antigos para `Administrador`/`Membro`, preservando Coordenador e Monitor
+   como perfis locais dos espaços. Essa migração não substitui o versionamento
+   geral do banco: outras alterações do schema devem seguir o fluxo de
+   migração documentado.
 
-7. **Inicie o Servidor Local:**
+7. **Popule o banco com dados de demonstração (opcional):**
+   O comando abaixo cria usuários Administrador e Membro, atribuições locais
+   de Coordenador e Monitor, espaços, recursos, um projeto e solicitações de
+   exemplo. A execução é idempotente e não acontece
+   ao iniciar a aplicação. Use apenas em bancos de desenvolvimento ou teste.
+   Defina `SEED_PASSWORD` no ambiente ou adicione essa variável ao arquivo
+   `.env` na raiz do projeto:
+
+   ```powershell
+   $env:SEED_PASSWORD = "uma-senha-local-segura"
+   python -m app.compartilhado.infra.seeds
+   ```
+
+   Se a variável estiver no `.env`, execute o segundo comando no mesmo
+   diretório em que está esse arquivo.
+
+   As contas criadas usam endereços `seed.*@example.com` e todas recebem a
+   senha definida em `SEED_PASSWORD`.
+
+8. **Inicie o Servidor Local:**
 
    ```
-   uvicorn main:app --reload
+   python -m uvicorn main:app --reload
    
    ```
 

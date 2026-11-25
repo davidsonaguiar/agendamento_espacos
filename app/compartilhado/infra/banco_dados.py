@@ -1,5 +1,7 @@
 from collections.abc import Generator
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -25,3 +27,6 @@ def pegar_banco_dados() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+SessaoBD = Annotated[Session, Depends(pegar_banco_dados)]

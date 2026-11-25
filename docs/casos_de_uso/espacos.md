@@ -1,0 +1,207 @@
+# Casos de uso — Espaços
+
+O módulo `app/modulos/espacos/` administra espaços físicos, seus recursos,
+horários semanais, pausas excepcionais e vínculos de usuários. O roteador usa
+o prefixo `/espacos`.
+
+## Recursos
+
+Um espaço pode possuir vários recursos, como impressoras 3D, computadores ou
+CNC. `Recurso` registra nome, tipo, necessidade de autorização, disponibilidade,
+se permite reserva independente (`reserva_independente`, padrão `false`) e o
+ID do espaço associado. O cadastro e a manutenção estão disponíveis pelas rotas
+abaixo. As respostas de listagem incluem as reservas confirmadas: o espaço
+apresenta somente reservas do espaço físico, enquanto cada recurso apresenta
+suas próprias reservas, inclusive quando listadas dentro do espaço. Reservas
+passadas também são incluídas.
+
+## Endpoints e autorização
+
+| Operação | Endpoint | Perfil exigido | Resposta de sucesso |
+|---|---|---|---|
+| Cadastrar | `POST /espacos/` | Administrador | 201, `EspacoResposta` |
+| Listar | `GET /espacos/` | Autenticado | 200, lista de `EspacoResposta` |
+| Desativar | `DELETE /espacos/{id_espaco}` | Administrador | 200, `EspacoResposta` |
+| Atualizar dados | `PUT /espacos/{id_espaco}` | Administrador ou Coordenador daquele espaço | 200, `EspacoResposta` |
+| Reativar | `PATCH /espacos/{id_espaco}/reativar` | Administrador | 200, `EspacoResposta` |
+| Atualizar horário | `PATCH /espacos/{id_espaco}/horarios` | Administrador ou Coordenador daquele espaço | 200 |
+| Consultar horários | `GET /espacos/{id_espaco}/horarios` | Autenticado | 200, lista de `HorarioFuncionamentoResposta` |
+| Listar membros disponíveis | `GET /espacos/{id_espaco}/usuarios/disponiveis` | Administrador ou Coordenador daquele espaço | 200, lista |
+| Vincular usuário | `POST /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador daquele espaço (este só pode atribuir Monitor) | 201 |
+| Desvincular usuário | `DELETE /espacos/{id_espaco}/usuarios/{id_usuario}` | Administrador ou Coordenador daquele espaço (este só pode remover Monitor) | 200 |
+| Adicionar pausa | `POST /espacos/{id_espaco}/pausas` | Administrador ou Coordenador daquele espaço | 201, `PausaResposta` |
+| Listar pausas | `GET /espacos/{id_espaco}/pausas` | Autenticado | 200, lista de `PausaResposta` |
+| Remover pausa | `DELETE /espacos/{id_espaco}/pausas/{id_pausa}` | Administrador ou Coordenador daquele espaço | 200 |
+| Cadastrar recurso | `POST /espacos/{id_espaco}/recursos` | Administrador ou Coordenador daquele espaço | 201, `RecursoResposta` |
+| Listar recursos | `GET /espacos/{id_espaco}/recursos` | Autenticado | 200, lista paginada de `RecursoResposta` |
+| Atualizar recurso | `PUT /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador daquele espaço | 200, `RecursoResposta` |
+| Indisponibilizar recurso | `DELETE /espacos/{id_espaco}/recursos/{id_recurso}` | Administrador ou Coordenador daquele espaço | 200, `RecursoResposta` |
+
+Os endpoints protegidos carregam o usuário autenticado e verificam o perfil
+local do espaço na camada HTTP. Administradores têm acesso global; a função
+de Coordenador só vale no espaço ao qual o usuário está vinculado. Respostas
+de horário, vínculo e remoção de pausa não declaram
+`response_model`; seus corpos vêm diretamente dos valores retornados pelo
+caso de uso.
+
+## Gerenciar recursos
+
+**Caso de uso:** `GerenciarRecursosEspacoCasoDeUso`.
+
+- **Cadastrar:** exige que o espaço exista e associa o novo recurso a ele.
+- **Listar:** exige espaço existente e aceita `skip` (mínimo 0, padrão 0) e
+  `limit` (1–100, padrão 100). Administradores podem ver todos os recursos,
+  inclusive os indisponíveis, em qualquer espaço. Coordenadores e Monitores
+  veem também recursos indisponíveis somente no espaço em que têm o perfil
+  local correspondente. Os demais Membros autenticados veem somente os
+  recursos disponíveis. Os resultados vêm em
+  ordem de ID e incluem em `reservas` as reservas confirmadas associadas ao
+  recurso.
+- **Atualizar:** exige recurso pertencente ao espaço informado; atualiza nome,
+  tipo, necessidade de autorização e permissão de reserva independente.
+- **Indisponibilizar:** `DELETE` é uma exclusão lógica, que define
+  `disponibilidade=false` sem apagar o registro.
+
+Nome e tipo aceitam entre 1 e 100 caracteres. Atualizações precisam informar ao
+menos um campo; campos nulos são rejeitados. Espaço ou recurso inexistente,
+assim como recurso associado a outro espaço, resulta em 404. Administradores
+ou Coordenadores daquele espaço podem cadastrar, atualizar e indisponibilizar
+recursos; a listagem exige autenticação.
+
+## Cadastro de espaço
+
+**Caso de uso:** `CadastrarEspacoCasoDeUso.executar`.
+
+Recebe `CriarEspaco`, rejeita nome já utilizado e persiste o novo espaço.
+Também inicializa sete registros de horário, um por dia da semana, com
+abertura às 08:00 e fechamento às 18:00: segunda a sexta ativos e sábado e
+domingo inativos. O repositório salva espaço e horários na transação de
+cadastro. Retorna `EspacoResposta` com HTTP 201.
+
+Campos de entrada:
+
+- `nome`: obrigatório, mínimo de 3 caracteres.
+- `descricao`, `capacidade` e `bloco`: opcionais.
+- `disponibilidade`: opcional, padrão verdadeiro.
+
+O esquema não impõe limite máximo de texto nem capacidade positiva. O modelo
+do banco limita nome a 100 caracteres, descrição a 255 e bloco a 50; capacidade
+é inteiro. Nome duplicado gera conflito (HTTP 409).
+
+## Listar espaços
+
+**Caso de uso:** `ListarEspacosCasoDeUso.executar`.
+
+Aceita `skip` (mínimo 0, padrão 0) e `limit` (1–100, padrão 100). A saída é
+uma lista simples, sem total:
+
+- Administrador: todos os espaços, ativos ou desativados.
+- Membro: todos os espaços disponíveis/ativos. Os perfis locais de
+  Coordenador e Monitor não alteram essa listagem.
+
+O repositório aplica os filtros e limites, sem ordenar explicitamente os
+resultados. Cada item inclui `reservas` confirmadas do espaço; as reservas
+independentes de recursos não aparecem nesse campo, mas constam em
+`reservas` no recurso correspondente.
+
+## Atualizar dados de espaço
+
+**Caso de uso:** `AtualizarEspacoCasoDeUso.executar`.
+
+Recebe `AtualizarEspaco`, cujos campos são opcionais: nome (mínimo 3 quando
+informado), descrição, capacidade e bloco. Procura o espaço, rejeita se ele
+não existir e verifica se outro espaço já utiliza o novo nome. Atualiza os
+valores informados que não sejam `None`.
+
+`disponibilidade` não pode ser alterada por esta operação: use as rotas de
+desativar e reativar. Valores `null` são ignorados, portanto este `PUT` não
+serve para limpar descrição, capacidade ou bloco.
+
+## Desativar e reativar
+
+- **`DesativarEspacoCasoDeUso`** define `disponibilidade=False`; é uma
+  desativação lógica, não remove o registro. Espaço inexistente gera 404.
+- **`ReativarEspacoCasoDeUso`** define `disponibilidade=True`. Espaço
+  inexistente gera 404; tentar reativar um espaço já ativo gera conflito
+  (409).
+
+Ambas as ações são restritas a Administrador.
+
+## Horário semanal
+
+**Caso de uso:** `AtualizarHorariosEspacoCasoDeUso.executar`.
+
+Recebe `AtualizarHorario` com `dia_semana` de 0 a 6 (0=domingo, 1=segunda,
+…, 6=sábado), `hora_abertura`, `hora_fechamento` e `ativo`. O caso de uso
+verifica se o espaço existe e constrói a entidade de horário; o domínio exige
+que fechamento seja posterior à abertura. Depois, o repositório procura o
+registro existente para aquele espaço e dia e atualiza suas horas e estado.
+
+`GET /espacos/{id_espaco}/horarios` verifica se o espaço existe e retorna os
+horários ordenados por `dia_semana`, incluindo `ativo`, abertura e fechamento.
+Um espaço inexistente retorna 404; a rota requer autenticação, mas está
+disponível para qualquer perfil autenticado. Atualização de um dia sem
+registro prévio levanta `ValueError` em vez de criar um novo registro.
+
+O cálculo da disponibilidade e a consulta de reservas estão no módulo
+`agendamento`; a verificação do funcionamento semanal e das pausas usa as
+regras e os dados mantidos pelo módulo de espaços. Veja
+[casos de uso de agendamentos](./agendamento.md).
+
+## Gerenciar vínculos de usuários
+
+**Caso de uso:** `GerenciarVinculosCasoDeUso`.
+
+- O vínculo associa um Membro a um espaço com exatamente um perfil local:
+  `Coordenador` ou `Monitor`. O mesmo membro pode ter perfil local diferente
+  em outros espaços.
+- Administradores podem atribuir ou remover qualquer um dos dois perfis em
+  qualquer espaço. Coordenadores podem atribuir e remover somente Monitores
+  no próprio espaço; somente um Administrador pode atribuir ou remover
+  Coordenadores.
+- Não é permitido criar um segundo vínculo/perfil para a mesma pessoa no
+  mesmo espaço. Administradores não precisam de vínculo local para operar.
+- `GET /espacos/{id_espaco}/usuarios/disponiveis` lista membros ativos que
+  ainda não estão vinculados àquele espaço.
+- O corpo de `POST /espacos/{id_espaco}/usuarios/{id_usuario}` informa
+  `perfil_espaco`, com valor `Coordenador` ou `Monitor`.
+- Espaço ou usuário inexistente, vínculo duplicado ou perfil-alvo não
+  permitido gera erro; operações bem-sucedidas retornam uma mensagem
+  descritiva.
+
+## Gerenciar pausas
+
+**Caso de uso:** `GerenciarPausasEspacoCasoDeUso`.
+
+- **Adicionar:** exige espaço existente e `CriarPausaFuncionamento`. A data
+  inicial e final são obrigatórias; motivo tem mínimo de 3 caracteres. O
+  domínio rejeita data final anterior à inicial. Sucesso retorna
+  `PausaResposta` (201).
+- **Listar:** exige espaço existente e retorna a lista de pausas (200), sem
+  ordenação explícita.
+- **Remover:** a rota exige espaço e pausa e retorna mensagem de sucesso
+  (200).
+
+O repositório remove a pausa pelo ID da pausa sem conferir que ela pertence ao
+ID do espaço da rota. Além disso, a camada de caso de uso captura `ValueError`,
+mas o repositório usa `EntidadeNaoEncontradaErro` para pausa inexistente; as
+exceções esperadas não são traduzidas uniformemente.
+
+## Esquemas de saída
+
+- `EspacoResposta`: ID, nome, descrição, capacidade, bloco e disponibilidade.
+- `PausaResposta`: ID, datas, motivo e ID do espaço.
+- Ambos aceitam instâncias ORM via `from_attributes=True`.
+
+## Limitações e comportamentos que não estão implementados
+
+- Não há exclusão definitiva de espaço nem validação de conflito entre pausas.
+- Não há limite positivo para capacidade, normalização de nomes ou validação
+  dos comprimentos de textos contra todas as colunas do banco.
+- Nenhuma ordenação é explicitamente solicitada para espaços ou pausas.
+- A pausa não é validada contra horário de funcionamento; sua finalidade é
+  apenas registrar um período de fechamento.
+- Uma exceção de validação de data é `RegraDeNegocioErro`, enquanto o caso de
+  uso captura `ValueError`; não se deve presumir que essa validação resulte
+  na resposta HTTP especificamente pretendida sem verificar a hierarquia de
+  erros compartilhada.

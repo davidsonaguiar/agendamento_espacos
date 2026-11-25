@@ -12,12 +12,6 @@ class ListarEspacosCasoDeUso:
         if usuario_logado.perfil == PerfilUsuario.ADMINISTRADOR:
             return self.repositorio.listar(skip=skip, limit=limit)
 
-        if usuario_logado.perfil == PerfilUsuario.SERVIDOR:
+        if usuario_logado.perfil == PerfilUsuario.MEMBRO:
             return self.repositorio.listar(apenas_ativos=True, skip=skip, limit=limit)
-
-        if usuario_logado.perfil in [PerfilUsuario.COORDENADOR, PerfilUsuario.MONITOR]:
-            return self.repositorio.listar(
-                id_usuario_vinculado=usuario_logado.id, skip=skip, limit=limit
-            )
-
         return []

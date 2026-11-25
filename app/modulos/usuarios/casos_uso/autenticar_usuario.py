@@ -1,10 +1,12 @@
 from app.compartilhado.dominio.erros import AcessoNegadoErro, CredenciaisInvalidasErro
 from app.modulos.usuarios.dominio.contratos import (
     CodificadorSenhaContrato,
-    TokenContrato,
     UsuarioRepositorioContrato,
 )
 from app.modulos.usuarios.dominio.entidades import Usuario
+from app.modulos.usuarios.casos_uso.gerenciar_tokens import (
+    GerenciarTokensCasoDeUso,
+)
 from app.modulos.usuarios.interface.esquemas import TokenResposta, UsuarioLogin
 
 
@@ -13,20 +15,16 @@ class AutenticarUsuarioCasoDeUso:
         self,
         repositorio: UsuarioRepositorioContrato,
         codificador: CodificadorSenhaContrato,
-        token_servico: TokenContrato,
+        tokens: GerenciarTokensCasoDeUso,
     ):
         self.repositorio = repositorio
         self.codificador = codificador
-        self.token_servico = token_servico
+        self.tokens = tokens
 
-    def executar(self, dados: UsuarioLogin) -> TokenResposta:
+    def executar(self, dados: UsuarioLogin) -> tuple[TokenResposta, str]:
         usuario = self._pegar_usuario_por_identificacao(dados.identificacao)
         self._validar_usuario(usuario, dados.senha.get_secret_value())
-
-        token_jwt = self.token_servico.criar_token_acesso(id_usuario=usuario.id)
-
-        return TokenResposta(access_token=token_jwt, usuario=usuario)
-    
+        return self.tokens.emitir(usuario)
 
     def _pegar_usuario_por_identificacao(self, identificacao: str) -> Usuario | None:
         if "@" in identificacao:
@@ -36,7 +34,7 @@ class AutenticarUsuarioCasoDeUso:
         return self.repositorio.buscar_por_cpf(cpf_limpo)
     
 
-    def _validar_usuario(self, usuario: Usuario | None, senha: str):
+    def _validar_usuario(self, usuario: Usuario | None, senha: str) -> None:
         if not usuario or not self.codificador.verificar_senha(
             senha=senha,
             senha_codificada=usuario.senha_codificada,
